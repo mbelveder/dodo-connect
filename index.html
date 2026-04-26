@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Додо: Восьмибитная пиццерия</title>
+    <style>
+      @font-face {
+        font-family: 'PixelSans';
+        /* Relative URL so the font resolves correctly whether the site is
+           served from the repo root or a subfolder (GitHub Pages). */
+        src: url('./fonts/FSPixelSansUnicode-Regular.ttf') format('truetype');
+        font-weight: 400;
+        font-style: normal;
+        font-display: block;
+      }
+      html,
+      body,
+      #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #1a1a1a;
+        overflow: hidden;
+        color: #fff7e6;
+        font-family: 'PixelSans', monospace;
+        -webkit-font-smoothing: none;
+        font-smooth: never;
+        image-rendering: pixelated;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

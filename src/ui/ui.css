@@ -1,0 +1,773 @@
+:root {
+  /* Main Dodo corporate color */
+  --dodo-orange: #ff6900;
+  --dodo-orange-dark: #993f00;
+  /* Aliases kept so existing rules don't all need renaming */
+  --dodo-red: #ff6900;
+  --dodo-red-dark: #993f00;
+  --dodo-cream: #fff7e6;
+  --dodo-charcoal: #1a1a1a;
+  --dodo-yellow: #ffd23f;
+  --dodo-green: #3fa34d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--dodo-yellow);
+  outline-offset: 2px;
+}
+
+/* ── Boot ───────────────────────────────────────────────── */
+
+.bootScreen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #2a1a0a, #0d0805 80%);
+  gap: 16px;
+}
+
+.bootBrand {
+  font-size: 84px;
+  letter-spacing: 6px;
+  color: var(--dodo-red);
+  text-shadow:
+    4px 4px 0 var(--dodo-red-dark),
+    8px 8px 0 var(--dodo-charcoal);
+}
+
+.bootStatus {
+  color: var(--dodo-cream);
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+/* ── Intro ──────────────────────────────────────────────── */
+
+.introScreen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 105, 0, 0.28), transparent 60%),
+    radial-gradient(circle at 70% 80%, rgba(255, 210, 63, 0.15), transparent 60%),
+    #1a1208;
+  padding: 16px 24px;
+  overflow: auto;
+}
+
+
+.introTitle {
+  text-align: center;
+  margin-bottom: 16px;
+  user-select: none;
+}
+
+.introCanvas {
+  display: block;
+  margin: 0 auto 16px;
+  image-rendering: pixelated;
+  border: 4px solid var(--dodo-charcoal);
+  box-shadow:
+    0 0 0 4px var(--dodo-cream),
+    0 0 0 8px var(--dodo-charcoal),
+    8px 8px 0 8px rgba(0, 0, 0, 0.4);
+  max-width: 100%;
+}
+
+.introBrand {
+  font-size: 64px;
+  letter-spacing: 6px;
+  color: var(--dodo-red);
+  text-shadow:
+    3px 3px 0 var(--dodo-red-dark),
+    6px 6px 0 var(--dodo-charcoal);
+}
+
+.introSub {
+  margin-top: 8px;
+  font-size: 18px;
+  color: var(--dodo-yellow);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* ── Dialogue box ──────────────────────────────────────── */
+
+.dialogueWrap {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  justify-content: center;
+}
+
+.dialogueBox {
+  width: 100%;
+  background: var(--dodo-cream);
+  color: var(--dodo-charcoal);
+  border: 4px solid var(--dodo-charcoal);
+  box-shadow:
+    0 0 0 4px var(--dodo-cream),
+    0 0 0 8px var(--dodo-charcoal),
+    8px 8px 0 8px rgba(0, 0, 0, 0.4);
+  padding: 24px 30px 20px;
+  font-size: 30px;
+  line-height: 1.5;
+}
+
+.dialogueSpeaker {
+  font-size: 24px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.dialogueText {
+  min-height: 120px;
+}
+
+/* Compact dialogue box: used when the line is already shown as a speech
+ * bubble above the speaker. Drop the body-text reservation height. */
+.dialogueBoxCompact {
+  padding: 14px 22px;
+}
+
+.dialogueBoxCompact .dialogueActions {
+  margin-top: 6px;
+}
+
+.dialogueActions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ── Buttons ───────────────────────────────────────────── */
+
+.btn {
+  font-family: inherit;
+  font-size: 21px;
+  padding: 10px 20px;
+  border: 3px solid var(--dodo-charcoal);
+  cursor: pointer;
+  background: var(--dodo-cream);
+  color: var(--dodo-charcoal);
+  letter-spacing: 1px;
+  box-shadow: 4px 4px 0 0 var(--dodo-charcoal);
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+
+.btn:hover {
+  background: #ffe9c3;
+}
+
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 var(--dodo-charcoal);
+}
+
+.btnPrimary {
+  background: var(--dodo-orange);
+  color: var(--dodo-cream);
+}
+
+.btnPrimary:hover {
+  background: #ff8a3a;
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--dodo-charcoal);
+  border-color: var(--dodo-charcoal);
+  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.4);
+}
+
+.btnGhost:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ── Play screen ───────────────────────────────────────── */
+
+.playScreen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--dodo-charcoal);
+}
+
+.canvasWrap {
+  width: 100%;
+  height: 100%;
+}
+
+.gameCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
+
+/* ── HUD ───────────────────────────────────────────────── */
+
+.hudTop {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  gap: 12px;
+}
+
+.hudBadge {
+  background: var(--dodo-cream);
+  color: var(--dodo-charcoal);
+  border: 3px solid var(--dodo-charcoal);
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 28px;
+  box-shadow: 4px 4px 0 0 var(--dodo-charcoal);
+  pointer-events: auto;
+}
+
+.hudHint {
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--dodo-cream);
+  padding: 12px 18px;
+  border: 2px solid var(--dodo-cream);
+  font-size: 22px;
+  letter-spacing: 0.5px;
+}
+
+.hudPrompt {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--dodo-cream);
+  color: var(--dodo-charcoal);
+  border: 3px solid var(--dodo-charcoal);
+  padding: 10px 22px;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 4px 4px 0 0 var(--dodo-charcoal);
+  animation: hudPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes hudPulse {
+  0%, 100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -3px);
+  }
+}
+
+.hudPromptKey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--dodo-yellow);
+  border: 2px solid var(--dodo-charcoal);
+  font-weight: 700;
+}
+
+/* ── Modal ─────────────────────────────────────────────── */
+
+.modalScrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalCard {
+  width: min(900px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--dodo-cream);
+  color: var(--dodo-charcoal);
+  border: 4px solid var(--dodo-charcoal);
+  box-shadow:
+    0 0 0 4px var(--dodo-cream),
+    0 0 0 8px var(--dodo-charcoal),
+    12px 12px 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--dodo-red);
+  color: var(--dodo-cream);
+  border-bottom: 4px solid var(--dodo-charcoal);
+}
+
+.modalTag {
+  font-size: 16px;
+  letter-spacing: 2px;
+  background: var(--dodo-charcoal);
+  padding: 3px 10px;
+}
+
+.modalTitle {
+  flex: 1;
+  font-size: 28px;
+  letter-spacing: 1px;
+}
+
+.modalClose {
+  background: var(--dodo-yellow);
+  color: var(--dodo-charcoal);
+  border: 3px solid var(--dodo-charcoal);
+  width: 44px;
+  height: 44px;
+  font-size: 28px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.modalIntro {
+  padding: 16px 24px;
+  border-bottom: 2px dashed var(--dodo-charcoal);
+  font-size: 24px;
+  line-height: 1.5;
+  background: #fffaee;
+  white-space: pre-wrap;
+}
+
+.modalStepIntroMuted {
+  margin-bottom: 10px;
+  opacity: 0.78;
+  font-size: 0.9em;
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(320px, 1fr);
+  gap: 0;
+}
+
+@media (max-width: 760px) {
+  .modalGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modalChartSlot {
+  padding: 18px;
+  background: #fffaee;
+  border-right: 2px dashed var(--dodo-charcoal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalQuizSlot {
+  padding: 18px;
+  background: var(--dodo-cream);
+}
+
+/* ── Infographic ───────────────────────────────────────── */
+
+.infoFigure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.infoImage {
+  max-width: 100%;
+  image-rendering: pixelated;
+  border: 3px solid var(--dodo-charcoal);
+}
+
+.infoCaption {
+  font-size: 17px;
+  text-align: center;
+  color: var(--dodo-charcoal);
+  opacity: 0.8;
+  letter-spacing: 0.5px;
+}
+
+.pixelChart {
+  border: 3px solid var(--dodo-charcoal);
+  background: var(--dodo-cream);
+  image-rendering: pixelated;
+  max-width: 100%;
+}
+
+/* ── Quiz ──────────────────────────────────────────────── */
+
+.quizPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quizQuestion {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.quizOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quizOption {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--dodo-cream);
+  border: 3px solid var(--dodo-charcoal);
+  font-size: 24px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--dodo-charcoal);
+  box-shadow: 3px 3px 0 0 var(--dodo-charcoal);
+  transition: transform 0.05s;
+}
+
+.quizOption:hover:not(:disabled) {
+  background: #ffe9c3;
+}
+
+.quizOption:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--dodo-charcoal);
+}
+
+.quizOption:disabled {
+  cursor: default;
+}
+
+.quizOptionLetter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--dodo-charcoal);
+  color: var(--dodo-cream);
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.quizOptionCorrect {
+  background: #d6f5d6;
+  border-color: var(--dodo-green);
+}
+
+.quizOptionCorrect .quizOptionLetter {
+  background: var(--dodo-green);
+}
+
+.quizOptionWrong {
+  background: #ffd6d3;
+  border-color: var(--dodo-red);
+}
+
+.quizOptionWrong .quizOptionLetter {
+  background: var(--dodo-red);
+}
+
+.quizOptionDim {
+  opacity: 0.55;
+}
+
+.quizFeedback {
+  border: 3px solid var(--dodo-charcoal);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quizFeedback.good {
+  background: #d6f5d6;
+}
+
+.quizFeedback.bad {
+  background: #ffd6d3;
+}
+
+.quizFeedbackTitle {
+  font-weight: 700;
+  font-size: 26px;
+}
+
+.quizFeedbackText {
+  font-size: 22px;
+  line-height: 1.5;
+}
+
+/* ── Disclaimer screen ─────────────────────────────────── */
+
+.disclaimerScreen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at center, rgba(255, 105, 0, 0.18), transparent 60%),
+    #1a1208;
+  padding: 24px;
+}
+
+.disclaimerCard {
+  width: min(820px, 96vw);
+  margin: auto;
+  background: var(--dodo-cream);
+  color: var(--dodo-charcoal);
+  border: 4px solid var(--dodo-charcoal);
+  box-shadow:
+    0 0 0 4px var(--dodo-cream),
+    0 0 0 8px var(--dodo-charcoal),
+    12px 12px 0 8px rgba(0, 0, 0, 0.5);
+  padding: clamp(20px, 3vw, 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(12px, 2vh, 24px);
+}
+
+.disclaimerGreeting {
+  font-size: clamp(32px, 4.5vw, 72px);
+  letter-spacing: 0.04em;
+  color: var(--dodo-red);
+  text-align: center;
+}
+
+.disclaimerBody {
+  font-size: clamp(22px, 2.6vw, 46px);
+  line-height: 1.5;
+  text-align: center;
+  max-width: 72ch;
+}
+
+.disclaimerWish {
+  font-size: clamp(32px, 4.5vw, 72px);
+  text-align: center;
+  color: var(--dodo-orange);
+}
+
+.disclaimerCard .btn {
+  font-size: clamp(20px, 2.4vw, 42px);
+  padding: 12px 32px;
+  letter-spacing: 0.04em;
+}
+
+/* ── Ending screen ─────────────────────────────────────── */
+
+.endingScreen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at center, rgba(255, 105, 0, 0.2), transparent 60%),
+    #1a1208;
+  padding: 24px;
+}
+
+.endingCard {
+  width: min(980px, 96vw);
+  margin: auto;
+  background: var(--dodo-cream);
+  color: var(--dodo-charcoal);
+  border: 4px solid var(--dodo-charcoal);
+  box-shadow:
+    0 0 0 4px var(--dodo-cream),
+    0 0 0 8px var(--dodo-charcoal),
+    12px 12px 0 8px rgba(0, 0, 0, 0.5);
+  padding: clamp(20px, 3vw, 40px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 2vh, 28px);
+}
+
+.endingProgress {
+  align-self: flex-end;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--dodo-charcoal);
+  opacity: 0.6;
+}
+
+.endingTitle {
+  font-size: clamp(48px, 7vw, 112px);
+  letter-spacing: 0.06em;
+  line-height: 1.05;
+  color: var(--dodo-red);
+  text-align: center;
+}
+
+.endingScore {
+  text-align: center;
+  font-size: clamp(26px, 4vw, 64px);
+  line-height: 1.3;
+}
+
+.endingChart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.endingCaption {
+  font-size: 17px;
+  opacity: 0.75;
+  letter-spacing: 0.5px;
+}
+
+.endingBeat {
+  font-size: 22px;
+  line-height: 1.5;
+}
+
+.endingSpeaker {
+  font-weight: 700;
+  margin-bottom: 0.35em;
+  font-size: 1.08em;
+  color: var(--dodo-red);
+}
+
+.endingOutro {
+  font-size: clamp(18px, 2.2vw, 42px);
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.endingOutro p {
+  margin: 0;
+}
+
+.endingVerdict {
+  border: 4px dashed var(--dodo-red);
+  padding: clamp(14px, 2vw, 28px);
+  background: #fffaee;
+  font-size: clamp(18px, 2.2vw, 42px);
+  line-height: 1.25;
+}
+
+.endingCredits {
+  text-align: center;
+  color: var(--dodo-charcoal);
+  font-size: clamp(20px, 2.4vw, 40px);
+  line-height: 1.45;
+}
+
+.endingCreditsNames {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  margin-bottom: 0.55em;
+  opacity: 0.92;
+}
+
+.endingCreditsRow {
+  display: flex;
+  justify-content: center;
+  gap: 1.2em;
+}
+
+.endingCreditsTeam {
+  font-weight: 700;
+  font-size: 1.12em;
+  letter-spacing: 0.04em;
+  color: var(--dodo-red);
+}
+
+.endingActions {
+  display: flex;
+  justify-content: center;
+}
+
+.endingActions .btn {
+  font-size: clamp(26px, 3.2vw, 52px);
+  padding: 16px 32px;
+  letter-spacing: 0.04em;
+}
+
+.endingAttributions {
+  font-size: clamp(20px, 2.4vw, 40px);
+  opacity: 0.7;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.endingAttributions a {
+  color: var(--dodo-orange);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.endingAttributions a:hover {
+  color: var(--dodo-red);
+}
+
+.endingFooter {
+  font-size: clamp(15px, 2vw, 28px);
+  opacity: 0.5;
+  text-align: center;
+  letter-spacing: 0.06em;
+}
+
+.endingText {
+  white-space: pre-wrap;
+}
