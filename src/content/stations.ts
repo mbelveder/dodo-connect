@@ -37,63 +37,15 @@ export function getStationSteps(station: Station): StationStep[] {
 }
 
 /**
- * IMPORTANT: station ids and **order** must match `interactables` in
- * `scene/pizzeriaLayout.ts` (register → dispatch → capitals → regions →
- * tile_map → holidays) — the guided queue uses that array index. Table
- * stations use `glowCol`/`glowRow` on the coloured pucks; register/dispatch
- * use NPC speech bubbles.
+ * IMPORTANT: each station **id** must match a table `Interactable` in
+ * `scene/pizzeriaLayout.ts` (puck `glowCol`/`glowRow`). All stations are on
+ * the communal table.
  *
  * Teammates: drop your infographics into `public/infographics/` and reference
  * by `/infographics/<file>.png`, OR replace `kind: 'image'` with
  * `kind: 'pixelChart'` and supply chart data.
  */
 export const STATIONS: Station[] = [
-  {
-    id: 'register',
-    label: 'Касса',
-    intro:
-      'Касса — пульс пиццерии. Чек за чеком, регион за регионом. Изучи статистику средних чеков по стране.',
-    infographic: {
-      kind: 'image',
-      src: '/img/bill.png',
-      caption: 'Средний чек по федеральным округам и крупным городам',
-      alt: 'Рейтинг регионов по среднему чеку Додо',
-    },
-    quiz: {
-      question:
-        'Какой субъект РФ занимает пятое место по размеру среднего чека?',
-      options: [
-        'Приволжский ФО',
-        'Санкт-Петербург',
-        'Центральный ФО',
-        'Сибирский ФО',
-      ],
-      correctIndex: 3,
-      explain:
-        'Сибирский ФО уверенно держится в первой пятёрке.',
-    },
-  },
-  {
-    id: 'dispatch',
-    label: 'Доставка',
-    intro:
-      'Десерты и напитки по-разному «весят» в чеке: в доставке и в зале картина не совпадает. Посмотри на инфографику.',
-    infographic: {
-      kind: 'image',
-      src: '/img/delivery.png',
-      caption:
-        'Сравнение доли десертов и напитков в доставке и в ресторанах',
-      alt: 'Сравнение доли десертов и напитков в доставке и в ресторанах',
-    },
-    quiz: {
-      question:
-        'Если объединить категории «десерты» + «напитки», где их суммарная доля выше?',
-      options: ['В доставке', 'В ресторанах', 'Примерно одинаково'],
-      correctIndex: 1,
-      explain:
-        'В зале гости чаще добавляют напитки и десерты к основному заказу; в доставке упор сильнее на «основу», поэтому суммарная доля этих категорий в ресторанах выше.',
-    },
-  },
   {
     id: 'capitals',
     label: 'Москва и Петербург',
@@ -203,12 +155,4 @@ export const STATIONS: Station[] = [
         'За 2 дня до 8 марта кривая заказов обгоняет «февральскую» — гости заранее заказывают столы и подарки.',
     },
   },
-];
-
-/** The four communal-table stations (same ids as pucks in `pizzeriaLayout`). */
-export const TABLE_STATION_IDS: readonly string[] = [
-  STATIONS[2]!.id,
-  STATIONS[3]!.id,
-  STATIONS[4]!.id,
-  STATIONS[5]!.id,
 ];

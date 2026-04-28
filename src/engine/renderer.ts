@@ -1,4 +1,3 @@
-import { TABLE_STATION_IDS } from '../content/stations';
 import { getFurnitureDef } from '../scene/furnitureCatalog';
 import { BUBBLE_FADE_SEC, DODO_PALETTE, ZOOM } from './constants';
 import {
@@ -18,12 +17,7 @@ import {
   type Character,
   type Interactable,
 } from './types';
-import {
-  getActiveStationNpcIdForChatter,
-  getInteractableAnchorTile,
-  getQueuedInteractable,
-  type GameState,
-} from './gameState';
+import { getInteractableAnchorTile, type GameState } from './gameState';
 
 /** Set of table-surface item def-ids that participate in the intro fade-in.
  *  Hover highlight is only applied to items that also have a station
@@ -216,17 +210,6 @@ export function renderFrame(
     }
   }
 
-  let tableStationsDone = 0;
-  for (const id of TABLE_STATION_IDS) {
-    if (state.completedStationIds.has(id)) tableStationsDone++;
-  }
-  const registerExitHintsUnlocked = tableStationsDone >= 3;
-  const pulseRegister =
-    registerExitHintsUnlocked && !state.completedStationIds.has('register');
-  const pulseExitDoor =
-    registerExitHintsUnlocked &&
-    !(state.completedStationIds.has('register') && state.completedStationIds.has('dispatch'));
-
   for (const item of state.furniture) {
     const def = getFurnitureDef(item.defId);
     if (!def) continue;
@@ -289,26 +272,15 @@ export function renderFrame(
     const hasStation = stationGlowPositions.has(`${item.col},${item.row}`);
     const isIncompleteStation =
       isFood && alphas.food >= 1 && incompletedGlowPositions.has(`${item.col},${item.row}`);
-    // Register / exit hints are independent of the intro food fade so they stay visible.
-    const isPhaseHintGlow =
-      (item.defId === 'PC_FRONT' && pulseRegister) ||
-      (item.defId === 'EXIT_DOOR' && pulseExitDoor);
-    const showPulseGlow = isIncompleteStation || isPhaseHintGlow;
     const isHovered =
-      (isFood &&
-        hasStation &&
-        alphas.food >= 1 &&
-        ht != null &&
-        ht.col >= item.col &&
-        ht.col < item.col + def.footprintW &&
-        ht.row >= item.row &&
-        ht.row < item.row + def.footprintH) ||
-      (isPhaseHintGlow &&
-        ht != null &&
-        ht.col >= item.col &&
-        ht.col < item.col + def.footprintW &&
-        ht.row >= item.row &&
-        ht.row < item.row + def.footprintH);
+      isFood &&
+      hasStation &&
+      alphas.food >= 1 &&
+      ht != null &&
+      ht.col >= item.col &&
+      ht.col < item.col + def.footprintW &&
+      ht.row >= item.row &&
+      ht.row < item.row + def.footprintH;
     // Z-sort:
     //   - Surface items (pizza on table) jump way up so they always draw in
     //     front of the taller furniture they sit on.
@@ -333,10 +305,8 @@ export function renderFrame(
         if (itemAlpha < 1) ctx.globalAlpha = itemAlpha;
         if (isHovered) {
           ctx.filter = 'brightness(1.55)';
-        } else if (showPulseGlow) {
-          const amp = isPhaseHintGlow ? 0.2 : 0.12;
-          const base = isPhaseHintGlow ? 1.12 : 1.05;
-          const bri = (base + amp * Math.sin(state.introElapsed * 1.8)).toFixed(2);
+        } else if (isIncompleteStation) {
+          const bri = (1.05 + 0.12 * Math.sin(state.introElapsed * 1.8)).toFixed(2);
           ctx.filter = `brightness(${bri})`;
         }
         if (wantSmoothing) ctx.imageSmoothingEnabled = true;
@@ -358,7 +328,7 @@ export function renderFrame(
           ctx.drawImage(img, drawX, drawY, drawW, drawH);
         }
         if (wantSmoothing) ctx.imageSmoothingEnabled = false;
-        if (isHovered || showPulseGlow) ctx.filter = 'none';
+        if (isHovered || isIncompleteStation) ctx.filter = 'none';
         if (itemAlpha < 1) ctx.globalAlpha = 1;
       },
     });
@@ -468,42 +438,9 @@ export function renderFrame(
   // out it really does help newcomers locate themselves on a busy map.
   drawPlayerPointer(ctx, state.player, offsetX, offsetY, state.introElapsed);
 
-  // Active station: NPC-only hints (register, dispatch) use the same fade as
-  // chatter; gameLoop cycles stationNpcGuideBubble. Hidden until the first
-  // station is completed (no bubble at 0/6).
-  const queuedStation = getQueuedInteractable(state);
-  const guide = state.stationNpcGuideBubble;
-  const showNpcGuide = Boolean(
-    queuedStation &&
-      guide &&
-      guide.stationId === queuedStation.id &&
-      guide.remaining > 0 &&
-      !(queuedStation.glowCol != null && queuedStation.glowRow != null),
-  );
-  if (showNpcGuide && queuedStation && guide) {
-    const npc = state.characters.find((c) => c.id === queuedStation.npcId);
-    if (npc) {
-      const playerNear = state.activePromptId === queuedStation.id;
-      let bubbleDrop = 0;
-      if (npc.seated) bubbleDrop = npc.dir === Direction.UP || npc.dir === Direction.DOWN ? 10 : 0;
-      const cx = offsetX + npc.x * ZOOM;
-      const cy = offsetY + (npc.y - CHAR_H + TILE_SIZE / 2 + bubbleDrop - 2) * ZOOM;
-      const line =
-        queuedStation.bubbleText ??
-        queuedStation.label ??
-        'Подойди поближе — расскажу про станцию.';
-      const text = playerNear ? `${line}\n\nКликни, чтобы открыть.` : line;
-      drawSpeechBubble(ctx, text, cx, cy, guide.remaining);
-    }
-  }
-
-  // Ambient chatter bubbles — anchored to character heads. Skipped for
-  // the active-station NPC so their station bubble doesn't fight a
-  // chatter line for the same airspace.
-  const activeNpcId = getActiveStationNpcIdForChatter(state);
+  // Ambient chatter bubbles — anchored to character heads.
   for (const ch of state.characters) {
     if (!ch.bubble) continue;
-    if (ch.id === activeNpcId) continue;
     let bubbleDrop = 0;
     if (ch.seated) bubbleDrop = (ch.dir === Direction.UP || ch.dir === Direction.DOWN) ? 10 : 0;
     const px = offsetX + ch.x * ZOOM;

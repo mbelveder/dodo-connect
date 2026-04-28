@@ -50,9 +50,8 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
       const y = e.clientY - rect.top;
       const cssW = rect.width;
       const cssH = rect.height;
-      // Any click on a station hotspot — pizza/muffin on the table, or the
-      // cashier/courier NPC — walks the player to that station's walk-tile
-      // and queues the modal to open on arrival. Works in any order.
+      // Table station hotspots (puck tiles) — walk to the approach tile and
+      // open the modal on arrival, or open immediately if already in range.
       const it = hitTestInteractable(state, cameraRef.current, cssW, cssH, x, y);
       if (it) {
         clickToMove(state.player, it.col, it.row, state.tileMap, state.blocked);

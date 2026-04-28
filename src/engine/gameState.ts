@@ -22,20 +22,11 @@ export interface GameState {
   activePromptId: string | null;
   /** Set of station ids the player has already completed. Mutated by App. */
   completedStationIds: Set<string>;
-  /** Index into `interactables` of the currently-active station in the
-   *  guided queue. Only this station is "live" (NPC bubble or table glow);
-   *  App.tsx bumps this when a modal closes. */
-  activeStationIdx: number;
   /** Seconds since the play stage started. Drives the intro reveal
    *  animation: slogan engraving fades out, then food fades in. */
   introElapsed: number;
   /** Current mouse hover tile (CSS-space, updated from mousemove). */
   hoveredTile: { col: number; row: number } | null;
-  /** Ephemeral NPC station hint (register/dispatch): cycles like chatter; only
-   *  after the first station is completed (gameLoop drives remaining/cooldown). */
-  stationNpcGuideBubble: { stationId: string; remaining: number } | null;
-  /** Seconds until the next NPC station hint can appear (after one fades out). */
-  stationNpcGuideBubbleCooldown: number;
 }
 
 export function buildBlockedSet(furniture: PlacedFurniture[]): Set<string> {
@@ -81,11 +72,8 @@ export function createGameState(opts: {
     interactables: opts.interactables,
     activePromptId: null,
     completedStationIds: new Set(),
-    activeStationIdx: 0,
     introElapsed: 0,
     hoveredTile: null,
-    stationNpcGuideBubble: null,
-    stationNpcGuideBubbleCooldown: 0,
   };
 }
 
@@ -120,40 +108,10 @@ export function getInteractableAnchorTile(
  *  furniture and seated NPCs are still reachable from neighbouring tiles. */
 const INTERACT_RADIUS = 2;
 
-/** Returns the first uncompleted station — used to draw the "next-to-do"
- *  glow / NPC bubble. Stations can be opened in any order via clicks; this
- *  is purely a UX hint about what the player hasn't seen yet. */
-export function getQueuedInteractable(state: GameState): Interactable | null {
-  for (const it of state.interactables) {
-    if (!state.completedStationIds.has(it.id)) return it;
-  }
-  return null;
-}
-
-export function getActiveStationNpcId(state: GameState): string | null {
-  return getQueuedInteractable(state)?.npcId ?? null;
-}
-
-/** While the cycling NPC station hint bubble is visible, suppress ambient
- *  chatter on that NPC. During cooldown gaps, chatter can fire like other
- *  characters. Null until the first station is completed. */
-export function getActiveStationNpcIdForChatter(state: GameState): string | null {
-  if (state.completedStationIds.size === 0) return null;
-  const queued = getQueuedInteractable(state);
-  if (!queued?.npcId) return null;
-  const hasGlow = queued.glowCol != null && queued.glowRow != null;
-  if (hasGlow) return null;
-  if (state.stationNpcGuideBubble && state.stationNpcGuideBubble.remaining > 0) {
-    return queued.npcId;
-  }
-  return null;
-}
-
 /** Returns the closest interactable within INTERACT_RADIUS of the player —
- *  scans ALL interactables (matches dodo-game). App.handleInteract still
- *  filters to only the queued station for opening modals; the broader scan
- *  here just makes proximity prompts work even before the queued station is
- *  reached, so clicks anywhere near a station tile feel responsive. */
+ *  scans ALL interactables. Drives `activePromptId` / HUD when near a station
+ *  walk tile; opening the modal is click-based on table pucks.
+ */
 export function findActiveInteractable(state: GameState): Interactable | null {
   const px = state.player.tileCol;
   const py = state.player.tileRow;

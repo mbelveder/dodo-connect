@@ -60,8 +60,6 @@ export function updateNpcChatter(
   state: ChatterState,
   characters: Character[],
   dt: number,
-  /** NPC id currently hosting the guided station bubble — no random chatter. */
-  activeStationNpcId: string | null,
   /** Number of stations completed so far. */
   completedStationCount: number,
   /** Player's current tile row (for north-table distance gate). */
@@ -69,7 +67,6 @@ export function updateNpcChatter(
 ): void {
   for (const ch of characters) {
     if (ch.isPlayer) continue;
-    if (activeStationNpcId && ch.id === activeStationNpcId) continue;
     const isBigTable = BIG_TABLE_NPC_IDS.has(ch.id);
     // Non-table NPCs stay quiet until the player has explored the first station.
     if (!isBigTable && completedStationCount === 0) continue;

@@ -3,9 +3,9 @@
 An 8-bit pixel-art pizzeria built around Dodo's slogan
 **"Есть то, что нас объединяет"** — a short interactive piece illustrating
 how Dodo Pizza connects different Russian regions. The player picks Саша
-or Вика, walks around an open dining hall, and explores six data stations
-arranged around a big communal table where six guests from different
-federal districts share a meal.
+or Вика, walks around an open dining hall, and explores **four** data stations
+on a big communal table where six guests from different federal districts
+share a meal.
 
 This repository is a fork of the original
 [dodo-game](https://github.com/mbelveder/dodo-game) hackathon project,
@@ -23,9 +23,9 @@ Open the URL Vite prints (default `http://localhost:5173`).
 ## Controls
 
 - **WASD / Arrow keys** — walk
-- **Click** — walk to that tile; click a station hotspot (table item or
-  NPC tile) to walk there and open it on arrival, or click again when you are
-  already in range to open immediately
+- **Click** — walk to that tile; click a **table station** hotspot (the
+  coloured puck) to walk to its approach tile and open it on arrival, or click
+  again when you are already in range to open immediately
 
 ## Game flow
 
@@ -34,24 +34,23 @@ Open the URL Vite prints (default `http://localhost:5173`).
    by default**. Sound preference is persisted to `localStorage`.
 2. **Play** — open dining hall with the big table at the center. Six
    regional guests are seated around it; the Dodo identics + slogan
-   placeholder is printed on the table surface. Six stations frame the
-   table.
-3. **Ending** — once all six stations are answered, Вика's verdict
-   plays based on the player's score.
+   placeholder is printed on the table surface. **Four** interactive data
+   stations sit on the table as colourful pucks (the cash area and exit door
+   are decorative only).
+3. **Ending** — once all four stations are answered, the two-page closing
+   sequence runs (friends line, then credits).
 
 ## Stations
 
 | id | Label | Sketch position |
 |---|---|---|
-| `tile_map` | Карты регионов | West (left of table) |
-| `regions` | Карта России | North-east (above table) |
-| `capitals` | Москва и Петербург | South (below table) |
-| `holidays` | Праздники | South-east (right of table) |
-| `register` | Касса | Top-left corner |
-| `dispatch` | Доставка | Bottom-left corner |
+| `capitals` | Москва и Петербург | South-west on table |
+| `regions` | Карта России | North-east on table |
+| `tile_map` | Карты регионов | North on table |
+| `holidays` | Праздники | South-east on table |
 
-The four sketch-positioned stations are the highlighted ones; `register`
-and `dispatch` are tucked into back corners.
+The cash counter (кассир NPC + register props) and the **ВЫХОД** door are
+scene dressing only — they do not open a station modal.
 
 ## Project layout
 

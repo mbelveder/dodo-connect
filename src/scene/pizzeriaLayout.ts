@@ -10,10 +10,10 @@ import {
 /**
  * Pizzeria layout — communal table with six seated guests (three calm north
  * faces, three animated south), side sofas east/west of the table, two
- * mirrored two-person booths (SW + SE), and a cash nook NW. Guided stations:
- * register + dispatch use NPC bubbles; the four data stations are colourful
- * pucks on the table — they brighten when the player is on the walk tile
- * or within a few tiles of the glowing puck (the puck sits on blocked cells).
+ * mirrored two-person booths (SW + SE), and a cash nook NW (decorative).
+ * Four data stations are colourful pucks on the table — they brighten when
+ * the player is on the walk tile or within a few tiles of the glowing puck
+ * (the puck sits on blocked cells).
  *
  * Tile codes: '#' wall, ',' dining floor, 'C' counter (non-walkable),
  *             ' ' void.
@@ -115,22 +115,6 @@ const TABLE_STATIONS = [
 ] as const;
 
 const interactables: Interactable[] = [
-  {
-    id: 'register',
-    col: 3,
-    row: 5,
-    label: 'Касса',
-    npcId: 'host_reg',
-    bubbleText: 'У кассы свежая статистика чеков — подойди, покажу.',
-  },
-  {
-    id: 'dispatch',
-    col: 3,
-    row: 14,
-    label: 'Доставка',
-    npcId: 'host_disp',
-    bubbleText: 'Про доставку и зал спорят каждый день — есть что показать.',
-  },
   ...TABLE_STATIONS.map((t) => ({
     id: t.stationId,
     // Items in the upper half (glowRow ≤ 6) are approached from the tile
