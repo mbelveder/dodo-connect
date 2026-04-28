@@ -51,7 +51,7 @@ export function EndingStory({ score, total, onRestart }: EndingStoryProps) {
           </button>
         </div>
         <div className="endingFooter">
-          Хакатон по дата-журналистике · Данные Dodo Pizza
+          Данные Dodo Pizza с хакатона «Всем Дата»
         </div>
       </div>
     </div>

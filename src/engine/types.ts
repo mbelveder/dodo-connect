@@ -94,7 +94,7 @@ export interface Interactable {
    *  visitor). */
   col: number;
   row: number;
-  /** Optional label shown on the prompt (defaults to "Изучить") */
+  /** Shown in the HUD when the player is in range (station title). */
   label?: string;
   /** Optional id of the NPC this interactable is "spoken" by. When set,
    *  the station bubble follows the NPC and the proximity check uses the

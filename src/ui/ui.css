@@ -284,18 +284,6 @@ button:focus-visible {
   }
 }
 
-.hudPromptKey {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 10px;
-  background: var(--dodo-yellow);
-  border: 2px solid var(--dodo-charcoal);
-  font-weight: 700;
-}
-
 /* ── Modal ─────────────────────────────────────────────── */
 
 .modalScrim {

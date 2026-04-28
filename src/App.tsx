@@ -142,14 +142,6 @@ export default function App() {
     return <EndingStory score={score} total={STATIONS.length} onRestart={handleRestart} />;
   }
 
-  const activeInteractable = activePromptId
-    ? gameState.interactables.find((i) => i.id === activePromptId)
-    : null;
-  const tableStationPromptActive =
-    activeInteractable != null &&
-    activeInteractable.glowCol != null &&
-    activeInteractable.glowRow != null;
-
   return (
     <div className="playScreen">
       <GameCanvas
@@ -166,11 +158,6 @@ export default function App() {
           !completedIds.has(currentPromptStation.id)
             ? currentPromptStation.label
             : null
-        }
-        promptClickOnly={
-          tableStationPromptActive &&
-          !!currentPromptStation &&
-          !completedIds.has(currentPromptStation.id)
         }
       />
       {openStation && (

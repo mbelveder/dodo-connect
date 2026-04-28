@@ -2,11 +2,9 @@ interface HUDProps {
   completed: number;
   total: number;
   promptLabel: string | null;
-  /** Table stations open on click only — hide E key and show a click hint. */
-  promptClickOnly?: boolean;
 }
 
-export function HUD({ completed, total, promptLabel, promptClickOnly }: HUDProps) {
+export function HUD({ completed, total, promptLabel }: HUDProps) {
   return (
     <>
       <div className="hudTop">
@@ -16,18 +14,11 @@ export function HUD({ completed, total, promptLabel, promptClickOnly }: HUDProps
             Станций изучено: {completed} / {total}
           </span>
         </div>
-        <div className="hudHint">WASD — ходить · Клик — идти к точке</div>
+        <div className="hudHint">WASD — ходить · Клик — идти к точке или исследовать предмет</div>
       </div>
       {promptLabel && (
         <div className="hudPrompt">
-          {promptClickOnly ? (
-            <span>Клик по столу — {promptLabel}</span>
-          ) : (
-            <>
-              <span className="hudPromptKey">E</span>
-              <span>Изучить: {promptLabel}</span>
-            </>
-          )}
+          <span>Клик — {promptLabel}</span>
         </div>
       )}
     </>

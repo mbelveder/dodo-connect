@@ -492,7 +492,7 @@ export function renderFrame(
         queuedStation.bubbleText ??
         queuedStation.label ??
         'Подойди поближе — расскажу про станцию.';
-      const text = playerNear ? `${line}\n\nНажми E, чтобы открыть.` : line;
+      const text = playerNear ? `${line}\n\nКликни, чтобы открыть.` : line;
       drawSpeechBubble(ctx, text, cx, cy, guide.remaining);
     }
   }
@@ -905,9 +905,8 @@ function drawSpeechBubble(
 
 /** Hit-test a screen click against an interactable. Scans ALL interactables
  *  (matches dodo-game) and returns the closest match within s*1.4 of the
- *  click. App.handleInteract decides whether to actually open the modal — we
- *  let any station-tile click walk the player there so the queued station's
- *  modal opens on arrival via pendingInteract. */
+ *  click. Walking + opening the modal is click-driven; `pendingInteract` in
+ *  GameCanvas opens on arrival when the click targeted a station from afar. */
 export function hitTestInteractable(
   state: GameState,
   camera: Camera,

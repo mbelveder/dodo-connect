@@ -6,16 +6,11 @@ import { type GameState } from '../engine/gameState';
 import { attachKeyHandlers, clickToMove, type KeyState } from '../engine/playerControl';
 import { hitTestInteractable, screenToTile } from '../engine/renderer';
 import type { Camera } from '../engine/renderer';
-import type { Interactable } from '../engine/types';
-
-function isTableSurfaceStation(it: Interactable): boolean {
-  return it.glowCol != null && it.glowRow != null;
-}
 
 interface GameCanvasProps {
   state: GameState;
   onActivePromptChange: (id: string | null) => void;
-  /** Fired when the player should open a station (E for NPC stations; click / arrival for table stations) */
+  /** Fired when the player opens a station (click on hotspot, in range or after walking there). */
   onInteract: (id: string) => void;
 }
 
@@ -48,22 +43,6 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
     // Pending interaction: when player clicks an interactable they're far from,
     // we walk them there and remember the id so we auto-open on arrival.
     let pendingInteract: string | null = null;
-
-    // Reuse keys obj's handlers but also intercept E for interaction.
-    const onE = (e: KeyboardEvent) => {
-      if (e.code !== 'KeyE' && e.key !== 'е' && e.key !== 'у' && e.key !== 'E' && e.key !== 'e') {
-        return;
-      }
-      if (state.activePromptId) {
-        const it = state.interactables.find((i) => i.id === state.activePromptId);
-        if (it && isTableSurfaceStation(it)) {
-          return;
-        }
-        pendingInteract = null;
-        onInteract(state.activePromptId);
-      }
-    };
-    window.addEventListener('keydown', onE);
 
     const onClick = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -136,7 +115,6 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
 
     return () => {
       window.removeEventListener('resize', resize);
-      window.removeEventListener('keydown', onE);
       canvas.removeEventListener('click', onClick);
       canvas.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('mouseleave', onMouseLeave);

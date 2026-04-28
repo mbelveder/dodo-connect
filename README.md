@@ -23,9 +23,9 @@ Open the URL Vite prints (default `http://localhost:5173`).
 ## Controls
 
 - **WASD / Arrow keys** — walk
-- **Click** — walk to that tile (or click directly on a station to walk
-  there and auto-open it on arrival)
-- **E** — interact with a station while standing next to its yellow ring
+- **Click** — walk to that tile; click a station hotspot (table item or
+  NPC tile) to walk there and open it on arrival, or click again when you are
+  already in range to open immediately
 
 ## Game flow
 
