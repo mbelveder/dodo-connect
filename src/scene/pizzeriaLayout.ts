@@ -102,19 +102,45 @@ const TABLE_STATIONS = [
     stationId: 'tile_map',
     label: 'Карты регионов',
   },
-  // Muffin is the 1×1 holiday icon — sits near the east-sofa diner.
+  // Pepperoni pizza — holiday station, now at south-east of table.
   {
-    glowCol: 14,
-    glowRow: 7,
-    glowW: 1,
-    glowH: 1,
-    defId: 'MUFFIN',
+    glowCol: 13,
+    glowRow: 8,
+    glowW: 2,
+    glowH: 2,
+    defId: 'PEPERONI_PIZZA',
     stationId: 'holidays',
     label: 'Праздники',
   },
 ] as const;
 
 const interactables: Interactable[] = [
+  {
+    id: 'register',
+    col: 3,
+    row: 5,
+    label: 'Касса',
+    npcId: 'host_reg',
+    bubbleText: 'У кассы свежая статистика чеков — подойди, покажу.',
+    clickOnly: true,
+    glowCol: 4,
+    glowRow: 3,
+    glowFootprintW: 1,
+    glowFootprintH: 1,
+  },
+  {
+    id: 'dispatch',
+    col: 3,
+    row: 14,
+    label: 'Доставка',
+    npcId: 'host_disp',
+    bubbleText: 'Про доставку и зал спорят каждый день — есть что показать.',
+    clickOnly: true,
+    glowCol: 1,
+    glowRow: 15,
+    glowFootprintW: 1,
+    glowFootprintH: 1,
+  },
   ...TABLE_STATIONS.map((t) => ({
     id: t.stationId,
     // Items in the upper half (glowRow ≤ 6) are approached from the tile
@@ -266,8 +292,8 @@ function buildFurnitureList(): PlacedFurniture[] {
   return [
     place('BIG_TABLE', 7, 6),
     ...stationItems,
-    // ── Decorative non-station pizza (cols 13–14, rows 8–9) ────────────
-    place('PEPERONI_PIZZA', 13, 8, false, PIZZA_ROTATIONS.PEPERONI_PIZZA),
+    // ── Decorative muffin at former peperoni station spot ──────────────
+    place('MUFFIN', 14, 7),
     // ── Pure table decorations (non-clickable) ─────────────────────────
     place('TABLE_DODO', 11, 8),
     place('COFFEE_CUP', 8, 7),

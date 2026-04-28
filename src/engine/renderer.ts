@@ -268,14 +268,15 @@ export function renderFrame(
     const itemAlpha = isFood ? alphas.food : 1;
     if (isFood && itemAlpha <= 0.01) continue;
     const ht = state.hoveredTile;
-    // Hover/pulse highlights only apply to station items.
+    // Hover/pulse highlights apply to station items (food on table) and to
+    // non-food station anchors (PC_FRONT for register, EXIT_DOOR for dispatch).
     const hasStation = stationGlowPositions.has(`${item.col},${item.row}`);
+    const foodReady = !isFood || alphas.food >= 1;
     const isIncompleteStation =
-      isFood && alphas.food >= 1 && incompletedGlowPositions.has(`${item.col},${item.row}`);
+      foodReady && incompletedGlowPositions.has(`${item.col},${item.row}`);
     const isHovered =
-      isFood &&
       hasStation &&
-      alphas.food >= 1 &&
+      foodReady &&
       ht != null &&
       ht.col >= item.col &&
       ht.col < item.col + def.footprintW &&
@@ -306,7 +307,7 @@ export function renderFrame(
         if (isHovered) {
           ctx.filter = 'brightness(1.55)';
         } else if (isIncompleteStation) {
-          const bri = (1.05 + 0.12 * Math.sin(state.introElapsed * 1.8)).toFixed(2);
+          const bri = (1.05 + 0.28 * Math.sin(state.introElapsed * 1.8)).toFixed(2);
           ctx.filter = `brightness(${bri})`;
         }
         if (wantSmoothing) ctx.imageSmoothingEnabled = true;
@@ -876,8 +877,16 @@ export function hitTestInteractable(
       }
       continue;
     }
-    const cx = offsetX + it.col * s + s / 2;
-    const cy = offsetY + it.row * s + s / 2;
+    // Use live NPC position for NPC-driven interactables so wandering NPCs
+    // (e.g. dispatch courier) stay hittable at their current tile.
+    const livePos = it.npcId
+      ? (() => {
+          const npc = state.characters.find((c) => c.id === it.npcId);
+          return npc ? { col: npc.tileCol, row: npc.tileRow } : { col: it.col, row: it.row };
+        })()
+      : { col: it.col, row: it.row };
+    const cx = offsetX + livePos.col * s + s / 2;
+    const cy = offsetY + livePos.row * s + s / 2;
     const dx = screenX - cx;
     const dy = screenY - cy + s * 0.7;
     const dist = Math.max(Math.abs(dx), Math.abs(dy));

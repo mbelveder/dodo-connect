@@ -30,7 +30,6 @@ export default function App() {
   const [stage, setStage] = useState<Stage>('boot');
   const [openStation, setOpenStation] = useState<Station | null>(null);
   const [completed, setCompleted] = useState<CompletedRecord[]>([]);
-  const [activePromptId, setActivePromptId] = useState<string | null>(null);
   const [stateKey, setStateKey] = useState(0);
   const [playerChoice, setPlayerChoice] = useState<PlayerChoice>('sasha');
 
@@ -67,9 +66,6 @@ export default function App() {
     gameState.completedStationIds = completedIds;
   }, [gameState, completedIds]);
 
-  const currentPromptStation = activePromptId
-    ? STATIONS.find((s) => s.id === activePromptId)
-    : null;
 
   const handleInteract = useCallback(
     (id: string) => {
@@ -112,7 +108,6 @@ export default function App() {
   const handleRestart = useCallback(() => {
     setCompleted([]);
     setOpenStation(null);
-    setActivePromptId(null);
     setStateKey((k) => k + 1);
     setStage('disclaimer');
   }, []);
@@ -147,18 +142,13 @@ export default function App() {
       <GameCanvas
         key={stateKey}
         state={gameState}
-        onActivePromptChange={setActivePromptId}
+        onActivePromptChange={() => {}}
         onInteract={handleInteract}
       />
       <HUD
         completed={completedIds.size}
         total={STATIONS.length}
-        promptLabel={
-          currentPromptStation != null &&
-          !completedIds.has(currentPromptStation.id)
-            ? currentPromptStation.label
-            : null
-        }
+        promptLabel={null}
       />
       {openStation && (
         <InfographicModal

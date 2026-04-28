@@ -54,11 +54,16 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
       // open the modal on arrival, or open immediately if already in range.
       const it = hitTestInteractable(state, cameraRef.current, cssW, cssH, x, y);
       if (it) {
-        clickToMove(state.player, it.col, it.row, state.tileMap, state.blocked);
-        if (state.activePromptId === it.id) {
-          onInteract(it.id);
+        if (it.clickOnly) {
+          // clickOnly stations open immediately when in range; ignore if far away.
+          if (state.activePromptId === it.id) onInteract(it.id);
         } else {
-          pendingInteract = it.id;
+          clickToMove(state.player, it.col, it.row, state.tileMap, state.blocked);
+          if (state.activePromptId === it.id) {
+            onInteract(it.id);
+          } else {
+            pendingInteract = it.id;
+          }
         }
         return;
       }

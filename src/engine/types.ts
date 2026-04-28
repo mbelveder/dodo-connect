@@ -110,6 +110,9 @@ export interface Interactable {
    *  pizza on the table, set to 2 so any of its 4 tiles registers a hit. */
   glowFootprintW?: number;
   glowFootprintH?: number;
+  /** When true the modal opens only on direct click while in range — no
+   *  walk-then-auto-open. Used for NPC-driven stations (register, dispatch). */
+  clickOnly?: boolean;
 }
 
 export interface Bubble {
