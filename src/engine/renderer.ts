@@ -1,3 +1,4 @@
+import { TABLE_STATION_IDS } from '../content/stations';
 import { getFurnitureDef } from '../scene/furnitureCatalog';
 import { BUBBLE_FADE_SEC, DODO_PALETTE, ZOOM } from './constants';
 import {
@@ -18,6 +19,7 @@ import {
   type Interactable,
 } from './types';
 import {
+  getActiveStationNpcIdForChatter,
   getInteractableAnchorTile,
   getQueuedInteractable,
   type GameState,
@@ -203,11 +205,27 @@ export function renderFrame(
   // Pre-compute which (col,row) positions have a glow interactable so we can
   // suppress the hover-brightness on decorative items with no station.
   const stationGlowPositions = new Set<string>();
+  // Also track which of those stations are still uncompleted (pulsing).
+  const incompletedGlowPositions = new Set<string>();
   for (const it of state.interactables) {
     if (it.glowCol != null && it.glowRow != null) {
       stationGlowPositions.add(`${it.glowCol},${it.glowRow}`);
+      if (!state.completedStationIds.has(it.id)) {
+        incompletedGlowPositions.add(`${it.glowCol},${it.glowRow}`);
+      }
     }
   }
+
+  let tableStationsDone = 0;
+  for (const id of TABLE_STATION_IDS) {
+    if (state.completedStationIds.has(id)) tableStationsDone++;
+  }
+  const registerExitHintsUnlocked = tableStationsDone >= 3;
+  const pulseRegister =
+    registerExitHintsUnlocked && !state.completedStationIds.has('register');
+  const pulseExitDoor =
+    registerExitHintsUnlocked &&
+    !(state.completedStationIds.has('register') && state.completedStationIds.has('dispatch'));
 
   for (const item of state.furniture) {
     const def = getFurnitureDef(item.defId);
@@ -267,18 +285,30 @@ export function renderFrame(
     const itemAlpha = isFood ? alphas.food : 1;
     if (isFood && itemAlpha <= 0.01) continue;
     const ht = state.hoveredTile;
-    // Hover highlight only applies to items that have a station interactable
-    // at the same top-left position — decorative pizzas/drinks don't light up.
+    // Hover/pulse highlights only apply to station items.
     const hasStation = stationGlowPositions.has(`${item.col},${item.row}`);
+    const isIncompleteStation =
+      isFood && alphas.food >= 1 && incompletedGlowPositions.has(`${item.col},${item.row}`);
+    // Register / exit hints are independent of the intro food fade so they stay visible.
+    const isPhaseHintGlow =
+      (item.defId === 'PC_FRONT' && pulseRegister) ||
+      (item.defId === 'EXIT_DOOR' && pulseExitDoor);
+    const showPulseGlow = isIncompleteStation || isPhaseHintGlow;
     const isHovered =
-      isFood &&
-      hasStation &&
-      alphas.food >= 1 &&
-      ht != null &&
-      ht.col >= item.col &&
-      ht.col < item.col + def.footprintW &&
-      ht.row >= item.row &&
-      ht.row < item.row + def.footprintH;
+      (isFood &&
+        hasStation &&
+        alphas.food >= 1 &&
+        ht != null &&
+        ht.col >= item.col &&
+        ht.col < item.col + def.footprintW &&
+        ht.row >= item.row &&
+        ht.row < item.row + def.footprintH) ||
+      (isPhaseHintGlow &&
+        ht != null &&
+        ht.col >= item.col &&
+        ht.col < item.col + def.footprintW &&
+        ht.row >= item.row &&
+        ht.row < item.row + def.footprintH);
     // Z-sort:
     //   - Surface items (pizza on table) jump way up so they always draw in
     //     front of the taller furniture they sit on.
@@ -301,7 +331,14 @@ export function renderFrame(
       zY,
       draw: () => {
         if (itemAlpha < 1) ctx.globalAlpha = itemAlpha;
-        if (isHovered) ctx.filter = 'brightness(1.55)';
+        if (isHovered) {
+          ctx.filter = 'brightness(1.55)';
+        } else if (showPulseGlow) {
+          const amp = isPhaseHintGlow ? 0.2 : 0.12;
+          const base = isPhaseHintGlow ? 1.12 : 1.05;
+          const bri = (base + amp * Math.sin(state.introElapsed * 1.8)).toFixed(2);
+          ctx.filter = `brightness(${bri})`;
+        }
         if (wantSmoothing) ctx.imageSmoothingEnabled = true;
         if (itemRotation !== 0) {
           const rcx = drawX + drawW / 2;
@@ -321,7 +358,7 @@ export function renderFrame(
           ctx.drawImage(img, drawX, drawY, drawW, drawH);
         }
         if (wantSmoothing) ctx.imageSmoothingEnabled = false;
-        if (isHovered) ctx.filter = 'none';
+        if (isHovered || showPulseGlow) ctx.filter = 'none';
         if (itemAlpha < 1) ctx.globalAlpha = 1;
       },
     });
@@ -391,9 +428,13 @@ export function renderFrame(
     const hatType = ch.hatType;
     // North-sofa diners face DOWN — crop bottom 8px so legs don't show over table.
     // Booth-back guests face UP (away) — crop bottom 12px behind the sofa back.
+    // Player walking into the sofa zone (row 5, cols 7-14) — crop lower body
+    // so she appears to stand behind the sofa back, not float on top of it.
+    const inSofaZone = ch.isPlayer && ch.tileRow === 5 && ch.tileCol >= 7 && ch.tileCol <= 14;
     const cropBottomSpritePx =
       ch.seated && ch.dir === Direction.DOWN ? 8 :
-      ch.stillSeated && ch.dir === Direction.UP ? 12 : 0;
+      ch.stillSeated && ch.dir === Direction.UP ? 12 :
+      inSofaZone ? 8 : 0;
     const visibleSpriteH = CHAR_H - cropBottomSpritePx;
     const visibleDrawH = visibleSpriteH * ZOOM;
     drawables.push({
@@ -427,63 +468,39 @@ export function renderFrame(
   // out it really does help newcomers locate themselves on a busy map.
   drawPlayerPointer(ctx, state.player, offsetX, offsetY, state.introElapsed);
 
-  // Active station: NPC stations keep a speech bubble; table stations use a
-  // glowing highlight on the surface puck when the player is in range.
-  const activeStation = getQueuedInteractable(state);
-  if (activeStation) {
-    const playerNear = state.activePromptId === activeStation.id;
-    const hasGlow =
-      activeStation.glowCol != null && activeStation.glowRow != null;
-    if (hasGlow) {
-      const gc = activeStation.glowCol!;
-      const gr = activeStation.glowRow!;
-      const fw = activeStation.glowFootprintW ?? 1;
-      const fh = activeStation.glowFootprintH ?? 1;
-      const tileX = offsetX + gc * s;
-      const tileY = offsetY + gr * s;
-      const rectW = fw * s;
-      const rectH = fh * s;
-      const pulse = 0.42 + 0.38 * Math.sin(state.introElapsed * 5.5);
-      if (playerNear) {
-        ctx.save();
-        ctx.globalAlpha = 0.22 + 0.28 * pulse;
-        ctx.fillStyle = '#FFF4D6';
-        ctx.fillRect(tileX - 2 * ZOOM, tileY - 2 * ZOOM, rectW + 4 * ZOOM, rectH + 4 * ZOOM);
-        ctx.globalAlpha = 0.55 + 0.25 * pulse;
-        ctx.strokeStyle = DODO_PALETTE.red;
-        ctx.lineWidth = Math.max(2, 3 * ZOOM);
-        ctx.strokeRect(tileX - 1 * ZOOM, tileY - 1 * ZOOM, rectW + 2 * ZOOM, rectH + 2 * ZOOM);
-        ctx.restore();
-      } else {
-        ctx.save();
-        ctx.globalAlpha = 0.18 + 0.18 * pulse;
-        ctx.strokeStyle = DODO_PALETTE.red;
-        ctx.lineWidth = Math.max(1, 2 * ZOOM);
-        ctx.setLineDash([4 * ZOOM, 3 * ZOOM]);
-        ctx.strokeRect(tileX + 1, tileY + 1, rectW - 2, rectH - 2);
-        ctx.restore();
-      }
-    } else {
-      const npc = state.characters.find((c) => c.id === activeStation.npcId);
-      if (npc) {
-        let bubbleDrop = 0;
-        if (npc.seated) bubbleDrop = npc.dir === Direction.UP || npc.dir === Direction.DOWN ? 10 : 0;
-        const cx = offsetX + npc.x * ZOOM;
-        const cy = offsetY + (npc.y - CHAR_H + TILE_SIZE / 2 + bubbleDrop - 2) * ZOOM;
-        const line =
-          activeStation.bubbleText ??
-          activeStation.label ??
-          'Подойди поближе — расскажу про станцию.';
-        const text = playerNear ? `${line}\n\nНажми E, чтобы открыть.` : line;
-        drawSpeechBubble(ctx, text, cx, cy, 999);
-      }
+  // Active station: NPC-only hints (register, dispatch) use the same fade as
+  // chatter; gameLoop cycles stationNpcGuideBubble. Hidden until the first
+  // station is completed (no bubble at 0/6).
+  const queuedStation = getQueuedInteractable(state);
+  const guide = state.stationNpcGuideBubble;
+  const showNpcGuide = Boolean(
+    queuedStation &&
+      guide &&
+      guide.stationId === queuedStation.id &&
+      guide.remaining > 0 &&
+      !(queuedStation.glowCol != null && queuedStation.glowRow != null),
+  );
+  if (showNpcGuide && queuedStation && guide) {
+    const npc = state.characters.find((c) => c.id === queuedStation.npcId);
+    if (npc) {
+      const playerNear = state.activePromptId === queuedStation.id;
+      let bubbleDrop = 0;
+      if (npc.seated) bubbleDrop = npc.dir === Direction.UP || npc.dir === Direction.DOWN ? 10 : 0;
+      const cx = offsetX + npc.x * ZOOM;
+      const cy = offsetY + (npc.y - CHAR_H + TILE_SIZE / 2 + bubbleDrop - 2) * ZOOM;
+      const line =
+        queuedStation.bubbleText ??
+        queuedStation.label ??
+        'Подойди поближе — расскажу про станцию.';
+      const text = playerNear ? `${line}\n\nНажми E, чтобы открыть.` : line;
+      drawSpeechBubble(ctx, text, cx, cy, guide.remaining);
     }
   }
 
   // Ambient chatter bubbles — anchored to character heads. Skipped for
   // the active-station NPC so their station bubble doesn't fight a
   // chatter line for the same airspace.
-  const activeNpcId = activeStation?.npcId;
+  const activeNpcId = getActiveStationNpcIdForChatter(state);
   for (const ch of state.characters) {
     if (!ch.bubble) continue;
     if (ch.id === activeNpcId) continue;
@@ -584,10 +601,12 @@ function drawCompletedTick(
   ctx.restore();
 }
 
-/** Draw the "Есть то, что нас объединяет" engraving across the table
- *  surface, in apron-shadow brown with a 1-px wood-hi highlight beneath
- *  to read as wood-burned. Alpha-modulated by the intro animation so it
- *  fades out before the food fades in. */
+/** Cached offscreen canvas for the pixel-art slogan. Invalidated when the
+ *  visible text or table width changes. */
+let sloganCache: { canvas: HTMLCanvasElement; key: string } | null = null;
+
+/** Render text on a 1/ZOOM offscreen canvas then upscale 3× with
+ *  imageSmoothingEnabled=false — produces blocky pixel-art characters. */
 function drawTableSlogan(
   ctx: CanvasRenderingContext2D,
   tableScreenX: number,
@@ -598,43 +617,62 @@ function drawTableSlogan(
   pulse: number,
 ): void {
   if (alpha <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.imageSmoothingEnabled = false;
+
   const line1Full = 'ЕСТЬ ТО, ЧТО НАС';
   const line2Full = 'ОБЪЕДИНЯЕТ';
   const line1 = line1Full.substring(0, Math.min(line1Full.length, charsRevealed));
   const line2 = line2Full.substring(0, Math.max(0, charsRevealed - line1Full.length));
-  const cx = tableScreenX + tableScreenW / 2;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  // Auto-fit: scale font so the longer line fills ~90% of the table width.
-  const maxFontPx = 14 * ZOOM;
-  ctx.font = `bold ${maxFontPx}px sans-serif`;
-  const probeW = ctx.measureText(line1Full).width;
-  const fitScale = Math.min(1, (tableScreenW * 0.90) / probeW);
-  const fontPx = Math.round(maxFontPx * fitScale);
-  ctx.font = `bold ${fontPx}px sans-serif`;
-  const lineGap = Math.round(fontPx * 1.35);
-  const twoLineH = fontPx + lineGap;
-  // Center both lines vertically in the table body (skip the top decorative row)
+
+  // Small canvas dimensions — rendered at 1/ZOOM then upscaled for pixel look.
+  const smallW = Math.ceil(tableScreenW / ZOOM);
+  // Probe font size so both lines fit inside ~90% of the small canvas.
+  const maxFontPx = 14;
+  const probeCanvas = document.createElement('canvas');
+  probeCanvas.width = smallW;
+  probeCanvas.height = 4;
+  const probe = probeCanvas.getContext('2d')!;
+  probe.font = `bold ${maxFontPx}px monospace`;
+  const probeW = probe.measureText(line1Full).width;
+  const fontPx = Math.min(maxFontPx, Math.floor(maxFontPx * (smallW * 0.88) / probeW));
+  const lineGap = Math.round(fontPx * 1.4);
+  const smallH = fontPx + lineGap + 2;
+
+  const cacheKey = `${line1}|${line2}|${smallW}|${fontPx}`;
+  if (!sloganCache || sloganCache.key !== cacheKey) {
+    const off = document.createElement('canvas');
+    off.width = smallW;
+    off.height = smallH;
+    const oc = off.getContext('2d')!;
+    oc.imageSmoothingEnabled = false;
+    oc.clearRect(0, 0, smallW, smallH);
+    oc.font = `bold ${fontPx}px monospace`;
+    oc.textAlign = 'center';
+    oc.textBaseline = 'top';
+    const cx = smallW / 2;
+    // Highlight pass (1 px below) — wood-burned chisel effect
+    oc.fillStyle = '#E0B07A';
+    oc.fillText(line1, cx, 1);
+    oc.fillText(line2, cx, lineGap + 1);
+    // Dark text pass
+    oc.fillStyle = '#3A2308';
+    oc.fillText(line1, cx, 0);
+    oc.fillText(line2, cx, lineGap);
+    sloganCache = { canvas: off, key: cacheKey };
+  }
+
+  const bigH = smallH * ZOOM;
   const surfaceTop = tableScreenY + TILE_SIZE * ZOOM;
   const surfaceH = 3 * TILE_SIZE * ZOOM;
-  const baseY = Math.round(surfaceTop + (surfaceH - twoLineH) / 2);
-  // Pulsing warm glow draws the eye to the engraving once it's all there.
+  const drawY = Math.round(surfaceTop + (surfaceH - bigH) / 2);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
   if (pulse > 0) {
     ctx.shadowColor = `rgba(255, 195, 90, ${0.55 + 0.35 * pulse})`;
     ctx.shadowBlur = 6 * ZOOM * pulse;
   }
-  // Highlight pass (wood-hi, drawn 1 zoom-px lower) to chisel the engraving
-  ctx.fillStyle = '#E0B07A';
-  ctx.fillText(line1, cx, baseY + ZOOM);
-  ctx.fillText(line2, cx, baseY + lineGap + ZOOM);
-  // Dark text pass (apron-shadow)
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#3A2308';
-  ctx.fillText(line1, cx, baseY);
-  ctx.fillText(line2, cx, baseY + lineGap);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sloganCache.canvas, tableScreenX, drawY, tableScreenW, bigH);
   ctx.restore();
 }
 

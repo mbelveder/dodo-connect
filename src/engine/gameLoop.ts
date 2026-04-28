@@ -1,6 +1,11 @@
 import { CAMERA_FOLLOW_LERP } from './constants';
 import { updateCharacter } from './character';
-import { findActiveInteractable, getActiveStationNpcId, type GameState } from './gameState';
+import {
+  findActiveInteractable,
+  getActiveStationNpcIdForChatter,
+  getQueuedInteractable,
+  type GameState,
+} from './gameState';
 import { createChatterState, updateNpcChatter } from './npcChatter';
 import { renderFrame, type Camera } from './renderer';
 import { tryStepFromKeys, type KeyState } from './playerControl';
@@ -34,7 +39,50 @@ export function startGameLoop(
       updateCharacter(ch, dt, state.tileMap, state.blocked, state.walkable);
     }
 
-    updateNpcChatter(chatter, state.characters, dt, getActiveStationNpcId(state));
+    // NPC-only queued stations (register, dispatch): short-lived bubbles that
+    // repeat after a cooldown — same rhythm as ambient chatter, and hidden
+    // until the first station is completed.
+    {
+      const queued = getQueuedInteractable(state);
+      const unlocked = state.completedStationIds.size > 0;
+      if (!unlocked || !queued) {
+        state.stationNpcGuideBubble = null;
+        state.stationNpcGuideBubbleCooldown = 0;
+      } else {
+        const hasTableGlow = queued.glowCol != null && queued.glowRow != null;
+        const isNpcStation = Boolean(queued.npcId) && !hasTableGlow;
+        if (!isNpcStation) {
+          state.stationNpcGuideBubble = null;
+          state.stationNpcGuideBubbleCooldown = 0;
+        } else if (
+          state.stationNpcGuideBubble &&
+          state.stationNpcGuideBubble.stationId !== queued.id
+        ) {
+          state.stationNpcGuideBubble = null;
+          state.stationNpcGuideBubbleCooldown = 0.9;
+        } else if (state.stationNpcGuideBubble) {
+          state.stationNpcGuideBubble.remaining -= dt;
+          if (state.stationNpcGuideBubble.remaining <= 0) {
+            state.stationNpcGuideBubble = null;
+            state.stationNpcGuideBubbleCooldown = 22 + Math.random() * 26;
+          }
+        } else {
+          state.stationNpcGuideBubbleCooldown -= dt;
+          if (state.stationNpcGuideBubbleCooldown <= 0) {
+            state.stationNpcGuideBubble = { stationId: queued.id, remaining: 2.8 };
+          }
+        }
+      }
+    }
+
+    updateNpcChatter(
+      chatter,
+      state.characters,
+      dt,
+      getActiveStationNpcIdForChatter(state),
+      state.completedStationIds.size,
+      state.player.tileRow,
+    );
 
     const active = findActiveInteractable(state);
     state.activePromptId = active ? active.id : null;

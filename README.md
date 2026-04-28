@@ -138,7 +138,7 @@ quiz: {
 ```
 
 The player gets immediate feedback. Whether the answer was right or
-wrong is recorded and influences Вика's verdict in the ending.
+wrong is recorded for the ending score line.
 
 ## Adding or moving regional guests
 
@@ -150,9 +150,10 @@ sofa or chair so the seated character sprite reads correctly.
 
 ## How to change the ending story
 
-`src/content/ending.ts` — list of `StoryBeat` objects, each with a `text`
-and optionally a `chart`. The `getVerdict(score, total)` function returns
-Вика's final line based on the player's score.
+[`src/content/ending.ts`](src/content/ending.ts) exports
+`ENDING_BEFORE_CREDITS` — the first ending card (no title). The second
+card is credits only; flow is in
+[`src/ui/EndingStory.tsx`](src/ui/EndingStory.tsx).
 
 ## Engine notes
 

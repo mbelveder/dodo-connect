@@ -31,6 +31,11 @@ export interface GameState {
   introElapsed: number;
   /** Current mouse hover tile (CSS-space, updated from mousemove). */
   hoveredTile: { col: number; row: number } | null;
+  /** Ephemeral NPC station hint (register/dispatch): cycles like chatter; only
+   *  after the first station is completed (gameLoop drives remaining/cooldown). */
+  stationNpcGuideBubble: { stationId: string; remaining: number } | null;
+  /** Seconds until the next NPC station hint can appear (after one fades out). */
+  stationNpcGuideBubbleCooldown: number;
 }
 
 export function buildBlockedSet(furniture: PlacedFurniture[]): Set<string> {
@@ -38,7 +43,10 @@ export function buildBlockedSet(furniture: PlacedFurniture[]): Set<string> {
   for (const item of furniture) {
     const def = getFurnitureDef(item.defId);
     if (!def) continue;
-    const bgRows = def.backgroundTiles ?? 0;
+    const bgRaw = def.backgroundTiles ?? 0;
+    // If backgroundTiles >= footprint height, every row would be skipped and
+    // the piece would not block walking (e.g. SOFA_FRONT was H=1 with bg=1).
+    const bgRows = Math.min(bgRaw, Math.max(0, def.footprintH - 1));
     for (let dr = 0; dr < def.footprintH; dr++) {
       if (dr < bgRows) continue;
       for (let dc = 0; dc < def.footprintW; dc++) {
@@ -76,6 +84,8 @@ export function createGameState(opts: {
     activeStationIdx: 0,
     introElapsed: 0,
     hoveredTile: null,
+    stationNpcGuideBubble: null,
+    stationNpcGuideBubbleCooldown: 0,
   };
 }
 
@@ -122,6 +132,21 @@ export function getQueuedInteractable(state: GameState): Interactable | null {
 
 export function getActiveStationNpcId(state: GameState): string | null {
   return getQueuedInteractable(state)?.npcId ?? null;
+}
+
+/** While the cycling NPC station hint bubble is visible, suppress ambient
+ *  chatter on that NPC. During cooldown gaps, chatter can fire like other
+ *  characters. Null until the first station is completed. */
+export function getActiveStationNpcIdForChatter(state: GameState): string | null {
+  if (state.completedStationIds.size === 0) return null;
+  const queued = getQueuedInteractable(state);
+  if (!queued?.npcId) return null;
+  const hasGlow = queued.glowCol != null && queued.glowRow != null;
+  if (hasGlow) return null;
+  if (state.stationNpcGuideBubble && state.stationNpcGuideBubble.remaining > 0) {
+    return queued.npcId;
+  }
+  return null;
 }
 
 /** Returns the closest interactable within INTERACT_RADIUS of the player —

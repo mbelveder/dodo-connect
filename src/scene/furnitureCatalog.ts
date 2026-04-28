@@ -195,7 +195,6 @@ const CATALOG: Record<string, FurnitureDef> = {
     h: 80,
     footprintW: 8,
     footprintH: 5,
-    backgroundTiles: 1,
   },
   // Decorative rug under the communal table — 12 tiles wide × 6 tall
   // (192×96 px). flat=true sorts it to the very back so the table,
@@ -326,6 +325,9 @@ const CATALOG: Record<string, FurnitureDef> = {
     h: 16,
     footprintW: 2,
     footprintH: 1,
+    // Must block the cushion row: with footprintH 1, backgroundTiles 1
+    // skipped the entire footprint in buildBlockedSet, so the PC could walk
+    // through the north sofa row and its west/east corners.
     seatLow: true,
     tint: 'orange',
     // Push the north sofa down 8 px so it visually overlaps the table's

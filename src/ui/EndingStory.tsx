@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { getVerdict } from '../content/ending';
+import { ENDING_BEFORE_CREDITS } from '../content/ending';
 
 interface EndingStoryProps {
   score: number;
@@ -9,31 +9,13 @@ interface EndingStoryProps {
 }
 
 export function EndingStory({ score, total, onRestart }: EndingStoryProps) {
-  const verdict = getVerdict(score, total);
   const [page, setPage] = useState<1 | 2>(1);
 
   if (page === 1) {
     return (
       <div className="endingScreen">
         <div className="endingCard">
-          <div className="endingTitle">Конец смены</div>
-          <div className="endingOutro">
-            <p>
-              Когда мы начали изучать данные, то думали ограничиться Москвой. Ведь именно на ней
-              фокусируют своё внимание многие бизнесы в России. Но чем больше мы разбирались, тем
-              больше понимали: стратегия Додо — другая.
-            </p>
-            <p>
-              Филиалы Додо есть в большинстве регионов страны — и их роль далеко не вторична.
-              Начать с того, что именно из регионов начинался путь сети (первый филиал открылся в
-              Сыктывкаре) и закончить теми инсайтами, которые мы получили в нашем проекте.
-            </p>
-            <p>
-              Посыл нашего проекта легко отражает один из слоганов Додо: «Есть то, что нас
-              объединяет». Нас, россиян, и правда много что объединяет. И не всегда Москва — это
-              главное, что можно найти в бизнесовых данных.
-            </p>
-          </div>
+          <p className="endingClosingLead">{ENDING_BEFORE_CREDITS}</p>
           <div className="endingActions">
             <button className="btn btnPrimary" onClick={() => setPage(2)}>
               Дальше ▸
@@ -47,13 +29,6 @@ export function EndingStory({ score, total, onRestart }: EndingStoryProps) {
   return (
     <div className="endingScreen">
       <div className="endingCard">
-        <div className="endingScore">
-          Правильных ответов: <b>{score}</b> из {total}
-        </div>
-        <div className="endingVerdict">
-          <div className="endingSpeaker">{verdict.speaker}:</div>
-          <div className="endingText">{verdict.text}</div>
-        </div>
         <div className="endingCredits">
           <div className="endingCreditsNames">
             <div className="endingCreditsRow">
@@ -74,23 +49,6 @@ export function EndingStory({ score, total, onRestart }: EndingStoryProps) {
           <button className="btn btnPrimary" onClick={onRestart}>
             Попробовать снова ▸
           </button>
-        </div>
-        <div className="endingAttributions">
-          <div>
-            Использованы открытые проекты:{' '}
-            <a href="https://github.com/pablodelucca/pixel-agents" target="_blank" rel="noopener noreferrer">
-              pixel-agents
-            </a>{' '}
-            и{' '}
-            <a href="https://github.com/quillcraft/tilemap-russia" target="_blank" rel="noopener noreferrer">
-              tilemap-russia
-            </a>{' '}
-            (проект{' '}
-            <a href="https://t.me/antonmizinov" target="_blank" rel="noopener noreferrer">
-              Антона Мизинова
-            </a>
-            ).
-          </div>
         </div>
         <div className="endingFooter">
           Хакатон по дата-журналистике · Данные Dodo Pizza

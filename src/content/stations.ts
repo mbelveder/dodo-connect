@@ -204,3 +204,11 @@ export const STATIONS: Station[] = [
     },
   },
 ];
+
+/** The four communal-table stations (same ids as pucks in `pizzeriaLayout`). */
+export const TABLE_STATION_IDS: readonly string[] = [
+  STATIONS[2]!.id,
+  STATIONS[3]!.id,
+  STATIONS[4]!.id,
+  STATIONS[5]!.id,
+];

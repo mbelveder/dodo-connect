@@ -1,42 +1,49 @@
 import { showBubble } from './character';
 import type { Character } from './types';
 
-/** Pool of ambient one-liners per NPC id. */
+/** Big-table diners can chat before the first station is visited. */
+const BIG_TABLE_NPC_IDS = new Set([
+  'diner_far_east', 'diner_siberia', 'diner_ural', 'diner_volga', 'diner_northwest',
+]);
+/** North-side diners (facing camera from across the table) only speak when
+ *  the player is in the southern half of the map, so they feel "distant". */
+const NORTH_TABLE_NPC_IDS = new Set(['diner_far_east', 'diner_siberia', 'diner_ural']);
+/** Row threshold — player is "in the south" when tileRow >= this. */
+const SOUTH_ROW = 9;
+
+/** Pool of ambient one-liners per NPC id. Phrases match each character's
+ *  home region as introduced on the welcome screen. */
 const CHATTER: Record<string, string[]> = {
-  vika: [
-    'Исследуй нашу диджитал-пиццерию!',
-    'Кстати — мы готовим пиццы без перчаток, чистыми руками!',
-    'Ну как, всё запомнил?',
-  ],
-  pizzaiolo_1: [
-    'Кто-то заказал ИИ-пиццу!',
-    'Две Масалы без лука!',
-    'Сегодня заказов больше обычного…',
-    'Сегодня зал полон — держим марку!'
-  ],
+  // Артём — Дальний Восток
   diner_far_east: [
     'У нас во Владивостоке тоже Додо!',
-    'А я скучаю по томатному супу!',
-    'На Дальнем Востоке заказы — самые крупные.',
+    'Дальневосточные гребешки — сила!',
+    'Дальний Восток — ближе, чем кажется.',
   ],
-  diner_volga: [
-    'Привет из Казани!',
-    'Дома такая же Пепперони.',
-    'У нас в Приволжье каждый второй знает Додо.',
-    'Из Казани с любовью!',
-    'Поволжье — наш вкус.',
-  ],
+  // Амина — Южный округ
   diner_siberia: [
-    'В Сибири без горячей пиццы — никак.',
-    'Привет из Красноярска!',
-    'Зимой ваша доставка спасает.',
+    'На юге нужно пробовать хычины!',
+    'Краснодарский край знает толк в еде.',
   ],
-  diner_central: ['Из Москвы приехал!', 'Люблю тонкое тесто.'],
-  diner_south: ['С нами вся страна за одним столом.', 'Ещё воды, пожалуйста.'],
+  // Матвей — Урал
+  diner_ural: [
+    'У нас на Урале любят острую.',
+    'Пицца — это тоже инженерия.',
+    'Урал — сила!',
+  ],
+  // Саша — Центральная Россия
+  diner_volga: [
+    'Привет из Центральной России!',
+    'В Москве пиццерий — не сосчитать.',
+    'Центр страны — центр вкуса.',
+  ],
+  // Давид — Поволжье
+  diner_northwest: [
+    'Стартер — это младший брат эчпочмака!',
+    'В Поволжье каждый второй знает Додо.',
+  ],
   host_reg: ['Сегодня чеки особенно интересные.', 'Можно оплатить картой или наличными.'],
   host_disp: ['Курьеры уже на линии.', 'Сегодня доставка идёт без задержек.'],
-  diner_ural: ['У нас на Урале любят острую.', 'Пицца — это тоже инженерия.'],
-  booth_ne: ['Тут тихо, удобно.', 'Можно ещё кофе?'],
   booth_se: ['У окна приятнее.', 'Ждём пиццу…'],
 };
 
@@ -55,10 +62,19 @@ export function updateNpcChatter(
   dt: number,
   /** NPC id currently hosting the guided station bubble — no random chatter. */
   activeStationNpcId: string | null,
+  /** Number of stations completed so far. */
+  completedStationCount: number,
+  /** Player's current tile row (for north-table distance gate). */
+  playerRow: number,
 ): void {
   for (const ch of characters) {
     if (ch.isPlayer) continue;
     if (activeStationNpcId && ch.id === activeStationNpcId) continue;
+    const isBigTable = BIG_TABLE_NPC_IDS.has(ch.id);
+    // Non-table NPCs stay quiet until the player has explored the first station.
+    if (!isBigTable && completedStationCount === 0) continue;
+    // North-table visitors only speak when the player is on the south side.
+    if (NORTH_TABLE_NPC_IDS.has(ch.id) && playerRow < SOUTH_ROW) continue;
     const pool = CHATTER[ch.id];
     if (!pool || pool.length === 0) continue;
     const next = state.nextAt.get(ch.id);

@@ -86,7 +86,7 @@ const TABLE_STATIONS = [
   },
   {
     glowCol: 9,
-    glowRow: 7,
+    glowRow: 6,
     glowW: 2,
     glowH: 2,
     defId: 'RANCH_PIZZA',
@@ -94,8 +94,8 @@ const TABLE_STATIONS = [
     label: 'Карта России',
   },
   {
-    glowCol: 11,
-    glowRow: 8,
+    glowCol: 12,
+    glowRow: 6,
     glowW: 2,
     glowH: 2,
     defId: 'VEGGIE_PIZZA',
@@ -133,11 +133,11 @@ const interactables: Interactable[] = [
   },
   ...TABLE_STATIONS.map((t) => ({
     id: t.stationId,
-    // Walk-to tile sits on the south aisle (row 11) directly under the
-    // item's centre. For 2-wide items centre col = glowCol + 1; for the
-    // single-tile muffin we just walk to the same column.
+    // Items in the upper half (glowRow ≤ 6) are approached from the tile
+    // north of the north SOFA_FRONT row (row 4): row 5 is the sofa footprint
+    // and is blocked for collision. Others use the south aisle (row 11).
     col: t.glowW > 1 ? t.glowCol + 1 : t.glowCol,
-    row: 11,
+    row: t.glowRow <= 6 ? 4 : 11,
     label: t.label,
     glowCol: t.glowCol,
     glowRow: t.glowRow,
@@ -285,9 +285,9 @@ function buildFurnitureList(): PlacedFurniture[] {
     // ── Decorative non-station pizza (cols 13–14, rows 8–9) ────────────
     place('PEPERONI_PIZZA', 13, 8, false, PIZZA_ROTATIONS.PEPERONI_PIZZA),
     // ── Pure table decorations (non-clickable) ─────────────────────────
-    place('TABLE_DODO', 13, 7),
+    place('TABLE_DODO', 11, 8),
     place('COFFEE_CUP', 8, 7),
-    place('MILKSHAKE', 12, 7),
+    place('MILKSHAKE', 11, 7),
     // ── Sofas around the big table ─────────────────────────────────────
     place('SOFA_SIDE', 6, 7, false),
     place('SOFA_SIDE', 15, 7, true),
@@ -319,9 +319,9 @@ function buildFurnitureList(): PlacedFurniture[] {
     // ── Plants ──
     place('PLANT', 1, 1),
     place('PLANT', 19, 1),
-    place('PLANT', 5, 15),
-    place('PLANT', 16, 15),
-    place('PLANT', 10, 1),
+    // place('PLANT', 5, 15),
+    // place('PLANT', 16, 15),
+    // place('PLANT', 10, 1),
     place('PLANT', 14, 1),
     place('PLANT', 3, 10),
     place('PLANT', 18, 10),

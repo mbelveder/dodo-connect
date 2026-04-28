@@ -6,11 +6,16 @@ import { type GameState } from '../engine/gameState';
 import { attachKeyHandlers, clickToMove, type KeyState } from '../engine/playerControl';
 import { hitTestInteractable, screenToTile } from '../engine/renderer';
 import type { Camera } from '../engine/renderer';
+import type { Interactable } from '../engine/types';
+
+function isTableSurfaceStation(it: Interactable): boolean {
+  return it.glowCol != null && it.glowRow != null;
+}
 
 interface GameCanvasProps {
   state: GameState;
   onActivePromptChange: (id: string | null) => void;
-  /** Fired when the player presses E or clicks an interactable directly */
+  /** Fired when the player should open a station (E for NPC stations; click / arrival for table stations) */
   onInteract: (id: string) => void;
 }
 
@@ -50,6 +55,10 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
         return;
       }
       if (state.activePromptId) {
+        const it = state.interactables.find((i) => i.id === state.activePromptId);
+        if (it && isTableSurfaceStation(it)) {
+          return;
+        }
         pendingInteract = null;
         onInteract(state.activePromptId);
       }

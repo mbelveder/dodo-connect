@@ -673,18 +673,6 @@ button:focus-visible {
   letter-spacing: 0.5px;
 }
 
-.endingBeat {
-  font-size: 22px;
-  line-height: 1.5;
-}
-
-.endingSpeaker {
-  font-weight: 700;
-  margin-bottom: 0.35em;
-  font-size: 1.08em;
-  color: var(--dodo-red);
-}
-
 .endingOutro {
   font-size: clamp(18px, 2.2vw, 42px);
   line-height: 1.25;
@@ -697,12 +685,13 @@ button:focus-visible {
   margin: 0;
 }
 
-.endingVerdict {
-  border: 4px dashed var(--dodo-red);
-  padding: clamp(14px, 2vw, 28px);
-  background: #fffaee;
-  font-size: clamp(18px, 2.2vw, 42px);
-  line-height: 1.25;
+.endingClosingLead {
+  margin: 0;
+  font-size: clamp(22px, 2.9vw, 52px);
+  line-height: 1.45;
+  text-align: center;
+  max-width: 56ch;
+  align-self: center;
 }
 
 .endingCredits {
@@ -766,10 +755,6 @@ button:focus-visible {
   opacity: 0.5;
   text-align: center;
   letter-spacing: 0.06em;
-}
-
-.endingText {
-  white-space: pre-wrap;
 }
 
 /* ── Welcome flow (2-page intro) ────────────────────────── */
@@ -975,6 +960,8 @@ button:focus-visible {
   font-size: clamp(28px, 2.8vw, 40px);
   color: var(--dodo-yellow);
   letter-spacing: 0.5px;
+  white-space: pre-line;
+  text-align: center;
 }
 
 .startPortrait {
@@ -1093,7 +1080,7 @@ button:focus-visible {
 .startPlayerName {
   font-size: clamp(44px, 4.4vw, 60px);
   font-weight: 700;
-  color: var(--dodo-orange);
+  color: var(--dodo-cream);
   letter-spacing: 1px;
 }
 

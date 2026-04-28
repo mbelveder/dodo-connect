@@ -19,10 +19,10 @@ interface WelcomeFlowProps {
 }
 
 const REGIONAL_CAST = [
-  { name: 'Артём', region: 'Дальний Восток', palette: 0, isPlayer: false },
-  { name: 'Саша', region: 'Центральная Россия', palette: 2, isPlayer: false },
+  { name: 'Артём', region: 'Дальний\nВосток', palette: 0, isPlayer: false },
+  { name: 'Саша', region: 'Центральная\nРоссия', palette: 2, isPlayer: false },
   { name: 'Матвей', region: 'Урал', palette: 3, isPlayer: false },
-  { name: 'Амина', region: 'Южный округ', palette: 5, isPlayer: false },
+  { name: 'Амина', region: 'Южный\nокруг', palette: 5, isPlayer: false },
   { name: 'Давид', region: 'Поволжье', palette: 4, isPlayer: false },
   { name: 'Настя', region: 'Сибирь', palette: 1, isPlayer: true },
 ];
@@ -132,7 +132,7 @@ function Page2({ soundOn, onToggleSound, onStart }: Page2Props) {
           checked={soundOn}
           onChange={(e) => onToggleSound(e.target.checked)}
         />
-        <span className="startSoundLabel">🔊 Включить звук</span>
+        <span className="startSoundLabel">Включить звук</span>
       </label>
 
       <button className="btn btnPrimary startStartBtn" onClick={onStart}>

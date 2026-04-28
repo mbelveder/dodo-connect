@@ -76,7 +76,7 @@ export default function App() {
       const station = STATIONS.find((s) => s.id === id);
       if (!station) return;
       if (completedIds.has(id)) {
-        showBubble(gameState.player, 'Тут я уже всё изучил.', 2.4);
+        showBubble(gameState.player, 'Тут я уже всё изучила.', 2.4);
         return;
       }
       setOpenStation(station);
@@ -142,6 +142,14 @@ export default function App() {
     return <EndingStory score={score} total={STATIONS.length} onRestart={handleRestart} />;
   }
 
+  const activeInteractable = activePromptId
+    ? gameState.interactables.find((i) => i.id === activePromptId)
+    : null;
+  const tableStationPromptActive =
+    activeInteractable != null &&
+    activeInteractable.glowCol != null &&
+    activeInteractable.glowRow != null;
+
   return (
     <div className="playScreen">
       <GameCanvas
@@ -154,11 +162,15 @@ export default function App() {
         completed={completedIds.size}
         total={STATIONS.length}
         promptLabel={
-          currentPromptStation
-            ? completedIds.has(currentPromptStation.id)
-              ? `${currentPromptStation.label} (изучено)`
-              : currentPromptStation.label
+          currentPromptStation != null &&
+          !completedIds.has(currentPromptStation.id)
+            ? currentPromptStation.label
             : null
+        }
+        promptClickOnly={
+          tableStationPromptActive &&
+          !!currentPromptStation &&
+          !completedIds.has(currentPromptStation.id)
         }
       />
       {openStation && (
