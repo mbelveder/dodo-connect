@@ -22,6 +22,15 @@ export interface GameState {
   activePromptId: string | null;
   /** Set of station ids the player has already completed. Mutated by App. */
   completedStationIds: Set<string>;
+  /** Index into `interactables` of the currently-active station in the
+   *  guided queue. Only this station is "live" (NPC bubble or table glow);
+   *  App.tsx bumps this when a modal closes. */
+  activeStationIdx: number;
+  /** Seconds since the play stage started. Drives the intro reveal
+   *  animation: slogan engraving fades out, then food fades in. */
+  introElapsed: number;
+  /** Current mouse hover tile (CSS-space, updated from mousemove). */
+  hoveredTile: { col: number; row: number } | null;
 }
 
 export function buildBlockedSet(furniture: PlacedFurniture[]): Set<string> {
@@ -64,23 +73,72 @@ export function createGameState(opts: {
     interactables: opts.interactables,
     activePromptId: null,
     completedStationIds: new Set(),
+    activeStationIdx: 0,
+    introElapsed: 0,
+    hoveredTile: null,
   };
 }
 
+/** Resolve the live tile coords of an interactable. Tied-to-NPC
+ *  interactables follow the NPC, so the prompt + proximity move with the
+ *  visitor as they wander. Static interactables fall back to col/row. */
+export function getInteractablePosition(
+  it: Interactable,
+  state: GameState,
+): { col: number; row: number } {
+  if (it.npcId) {
+    const npc = state.characters.find((c) => c.id === it.npcId);
+    if (npc) return { col: npc.tileCol, row: npc.tileRow };
+  }
+  return { col: it.col, row: it.row };
+}
+
+/** Tile used for green completion ticks and table proximity. Table stations
+ *  set `glowCol`/`glowRow` on the surface puck; others use the walk/NPC tile. */
+export function getInteractableAnchorTile(
+  it: Interactable,
+  state: GameState,
+): { col: number; row: number } {
+  if (it.glowCol != null && it.glowRow != null) {
+    return { col: it.glowCol, row: it.glowRow };
+  }
+  return getInteractablePosition(it, state);
+}
+
 /** Player must be within this Manhattan distance to trigger an interactable.
- *  Set to 2 so big-footprint furniture (like the communal table) can still
- *  be reached when the tiles immediately around the interactable are blocked. */
+ *  Matches dodo-game's INTERACT_RADIUS=2 — generous enough that big-footprint
+ *  furniture and seated NPCs are still reachable from neighbouring tiles. */
 const INTERACT_RADIUS = 2;
 
+/** Returns the first uncompleted station — used to draw the "next-to-do"
+ *  glow / NPC bubble. Stations can be opened in any order via clicks; this
+ *  is purely a UX hint about what the player hasn't seen yet. */
+export function getQueuedInteractable(state: GameState): Interactable | null {
+  for (const it of state.interactables) {
+    if (!state.completedStationIds.has(it.id)) return it;
+  }
+  return null;
+}
+
+export function getActiveStationNpcId(state: GameState): string | null {
+  return getQueuedInteractable(state)?.npcId ?? null;
+}
+
+/** Returns the closest interactable within INTERACT_RADIUS of the player —
+ *  scans ALL interactables (matches dodo-game). App.handleInteract still
+ *  filters to only the queued station for opening modals; the broader scan
+ *  here just makes proximity prompts work even before the queued station is
+ *  reached, so clicks anywhere near a station tile feel responsive. */
 export function findActiveInteractable(state: GameState): Interactable | null {
   const px = state.player.tileCol;
   const py = state.player.tileRow;
-  let best: { i: Interactable; dist: number } | null = null;
+  let best: { it: Interactable; dist: number } | null = null;
   for (const it of state.interactables) {
-    const dist = Math.abs(it.col - px) + Math.abs(it.row - py);
+    const pos = getInteractablePosition(it, state);
+    const dist = Math.abs(pos.col - px) + Math.abs(pos.row - py);
     if (dist <= INTERACT_RADIUS) {
-      if (!best || dist < best.dist) best = { i: it, dist };
+      if (!best || dist < best.dist) best = { it, dist };
     }
   }
-  return best ? best.i : null;
+  return best ? best.it : null;
 }

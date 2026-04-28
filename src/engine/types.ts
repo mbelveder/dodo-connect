@@ -57,6 +57,21 @@ export interface FurnitureDef {
    *  values push the sprite down. Useful for nudging a sofa to visually
    *  hug the table below it. */
   yOffsetPx?: number;
+  /** Optional render-time horizontal offset (in sprite pixels). Positive
+   *  values push the sprite right. Used to centre items whose w is
+   *  smaller than `footprintW * TILE_SIZE`. */
+  xOffsetPx?: number;
+  /** True for "floor" sprites (e.g. a rug). They are z-sorted to a
+   *  very low zY so every other drawable (table, character, prop) draws
+   *  on top. Mutually exclusive with `surface`. */
+  flat?: boolean;
+  /** Enable canvas image smoothing for this sprite — needed for high-res
+   *  source images (e.g. webp items at 1500×1500) so they don't alias to
+   *  garbage when nearest-neighbor downscaled. */
+  smooth?: boolean;
+  /** Fit sprite inside (w × h) while preserving source aspect ratio.
+   *  Useful for externally-provided art whose dimensions may vary. */
+  preserveAspect?: boolean;
 }
 
 export interface PlacedFurniture {
@@ -66,16 +81,35 @@ export interface PlacedFurniture {
   row: number;
   /** Optional render-time horizontal flip */
   mirror?: boolean;
+  /** Optional rotation in degrees around the sprite centre (clockwise) */
+  rotation?: number;
 }
 
 export interface Interactable {
   /** Stable id, matches station id for stations */
   id: string;
-  /** Tile the player must stand adjacent to in order to interact */
+  /** Fallback tile. When npcId is set, the live position is the NPC's
+   *  current tile; col/row here are only used as a default before the
+   *  NPC resolves (or for static interactables that aren't tied to a
+   *  visitor). */
   col: number;
   row: number;
   /** Optional label shown on the prompt (defaults to "Изучить") */
   label?: string;
+  /** Optional id of the NPC this interactable is "spoken" by. When set,
+   *  the station bubble follows the NPC and the proximity check uses the
+   *  NPC tile unless `glowCol`/`glowRow` override the anchor. */
+  npcId?: string;
+  /** Visitor-style line for the guided station bubble (defaults to label). */
+  bubbleText?: string;
+  /** Surface tile for table stations: top-left of the on-table item that
+   *  acts as the click hotspot + hover glow + completion tick. */
+  glowCol?: number;
+  glowRow?: number;
+  /** Footprint of the glow zone in tiles (defaults to 1×1). For a 2×2
+   *  pizza on the table, set to 2 so any of its 4 tiles registers a hit. */
+  glowFootprintW?: number;
+  glowFootprintH?: number;
 }
 
 export interface Bubble {
@@ -123,4 +157,11 @@ export interface Character {
   seated: boolean;
   /** When true, a small pixel-art backpack is drawn behind the character. */
   hasBackpack: boolean;
+  /** Seated guest with no hand-motion loop — calm "still" pose at the table. */
+  stillSeated?: boolean;
+  /** Optional hat drawn on top of the character.
+   *    'orange'      = procedural Dodo orange cap (standard size)
+   *    'orangeLarge' = same cap, slightly larger and lower (courier)
+   *    'party'       = pixel-art party hat */
+  hatType?: 'orange' | 'orangeLarge' | 'party';
 }

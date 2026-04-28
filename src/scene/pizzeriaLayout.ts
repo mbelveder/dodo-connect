@@ -8,43 +8,36 @@ import {
 } from '../engine/types';
 
 /**
- * Pizzeria layout. 17 cols × 20 rows, single open room with floor-color zones.
+ * Pizzeria layout — communal table with six seated guests (three calm north
+ * faces, three animated south), side sofas east/west of the table, two
+ * mirrored two-person booths (SW + SE), and a cash nook NW. Guided stations:
+ * register + dispatch use NPC bubbles; the four data stations are colourful
+ * pucks on the table — they brighten when the player is on the walk tile
+ * or within a few tiles of the glowing puck (the puck sits on blocked cells).
  *
- * Tile codes:
- *   '#' wall, '.' kitchen floor, ',' dining floor, ':' counter (dark), '~' carpet (red welcome mat), ' ' void
- *
- * Zones:
- *   Top-left: open dining / decor (kitchen prep stations removed)
- *   Middle band (row 9): counter + cash register
- *   Right: dining hall with tables (narrower east wall)
- *   Bottom-left: dispatch corner with whiteboard
+ * Tile codes: '#' wall, ',' dining floor, 'C' counter (non-walkable),
+ *             ' ' void.
  */
 
-// Cash booth: walls surround cols 8–13 rows 1–8; south edge meets the
-// counter band on row 9. The narrow east strip (col 15) stays open for
-// walking past the inner wall (col 14).
-// 17×20 map: five interior columns removed from the west (left).
 const ROWS = [
-  '#################', // 0
-  '#,,,,,,#,,,,,,#,#', // 1
-  '#,,,,,,#,,,,,,#,#', // 2
-  '#,,,,,,#,,,,,,#,#', // 3
-  '#,,,,,,#,,,,,,#,#', // 4
-  '#,,,,,,#,,,,,,#,#', // 5
-  '#,,,,,,#,,,,,,#,#', // 6
-  '#,,,,,,#,,,,,,#,#', // 7
-  '#,,,,,,#,,,,,,#,#', // 8
-  '#,,,,,,:#####:###', // 9
-  '#,,,,,,,,,,,,,,,#', // 10
-  '#,,,,,,,,,,,,,,,#', // 11
-  '#,,,,,,,,,,,,,,,#', // 12
-  '#,,,,,,,,,,,,,,,#', // 13
-  '#,,,,,,,,,,,,,,,#', // 14
-  '#,,,,,,,,,,,,,,,#', // 15
-  '#,,,,,,,,,,,,,,,#', // 16
-  '#,,,,,,,,,,,,,,,#', // 17
-  '#,,,,,,,,,,,,,,,#', // 18
-  '#################', // 19
+  '#####################', // 0  wall
+  '#,,,,,,,,,,,,,,,,,,,#', // 1  N décor / register top
+  '#,,,,,,,,,,,,,,,,,,,#', // 2  CASH
+  '#,,,,,,,,,,,,,,,,,,,#', // 3  PC at register
+  '#CCCCC,,,,,,,,,,,,,,#', // 4  counter divider (cols 1..5)
+  '#,,,,,,,,,,,,,,,,,,,#', // 5  N sofa row (cols 5..14)
+  '#,,,,,,,,,,,,,,,,,,,#', // 6  table top decorative (walkable)
+  '#,,,,,,,,,,,,,,,,,,,#', // 7  table mid + decal + side bench tops
+  '#,,,,,,,,,,,,,,,,,,,#', // 8  table mid + decal + side bench bottoms
+  '#,,,,,,,,,,,,,,,,,,,#', // 9  table front + food
+  '#,,,,,,,,,,,,,,,,,,,#', // 10 S chair top decorative
+  '#,,,,,,,,,,,,,,,,,,,#', // 11 S chair back / S NPCs
+  '#,,,,,,,,,,,,,,,,,,,#', // 12 S aisle (free for walking)
+  '#,,,,,,,,,,,,,,,,,,,#', // 13 booth N seat (SW + SE)
+  '#,,,,,,,,,,,,,,,,,,,#', // 14 booth small table top
+  '#,,,,,,,,,,,,,,,,,,,#', // 15 booth small table bottom
+  '#,,,,,,,,,,,,,,,,,,,#', // 16 booth S seat / dispatch / exit wall strip
+  '#####################', // 17 wall
 ];
 
 function decode(rows: string[]): TileType[][] {
@@ -53,14 +46,10 @@ function decode(rows: string[]): TileType[][] {
       switch (ch) {
         case '#':
           return TileType.WALL;
-        case '.':
-          return TileType.KITCHEN;
         case ',':
           return TileType.DINING;
-        case ':':
+        case 'C':
           return TileType.COUNTER;
-        case '~':
-          return TileType.CARPET;
         case ' ':
           return TileType.VOID;
         default:
@@ -74,222 +63,306 @@ const tileMap = decode(ROWS);
 const COLS = ROWS[0].length;
 const NROWS = ROWS.length;
 
-// ── Furniture ──────────────────────────────────────────────────
-
 let nextUid = 1;
-function place(defId: string, col: number, row: number, mirror = false): PlacedFurniture {
-  return { uid: `f${nextUid++}`, defId, col, row, mirror };
+function place(defId: string, col: number, row: number, mirror = false, rotation?: number): PlacedFurniture {
+  return { uid: `f${nextUid++}`, defId, col, row, mirror, rotation };
 }
 
-const furniture: PlacedFurniture[] = [
-  // Counter row (row 9): cash register PC at counter. Pixel-art cash
-  // sits ABOVE the monitor (row 7) — the cashier's till.
-  place('PC_FRONT', 12, 8),
-  place('CASH', 12, 7),
-
-  // Big table in the cash area (replaces the two small tables that used
-  // to live here). The white-haired host (Andrey) sits at it on the
-  // north sofa; east/west sofas complete the booth seating like the
-  // communal table.
-  place('SOFA_FRONT', 11, 1),
-  place('SOFA_SIDE', 10, 3),        // cash west sofa
-  place('SOFA_SIDE', 12, 3, true),  // cash east sofa (mirrored)
-  place('TABLE_FRONT', 11, 2),
-
-  // ── Big communal table (center, rows 11-14) ───────────────────────
-  // SOFA_FRONT spans 2 tiles north of the table; SOFA_SIDE flanks east
-  // and west. The side sofas are mirrored so their back-rest faces AWAY
-  // from the table (so a seated diner faces inward toward the food).
-  place('SOFA_FRONT', 11, 10),
-  place('SOFA_SIDE', 10, 12),       // west sofa: back faces west (away)
-  place('SOFA_SIDE', 14, 12, true), // east sofa: back faces east (away — mirrored)
-  place('TABLE_FRONT', 11, 11),
-  place('PIZZA', 11, 13),       // classic red pizza, middle-left
-  place('PIZZA_GREEN', 12, 12), // pesto/green pizza, top-right (off the
-                                // south edge of the table)
-  place('BURRITO', 13, 13),     // foil-wrapped burrito on the communal table
-
-  // ── Dining tables ────────────────────────────────────────────────
-  // Each small table has chairs on BOTH north and south sides — full
-  // 4-person seating. South chairs use WOODEN_CHAIR_FRONT (we see the
-  // chair's seat side); north chairs use WOODEN_CHAIR_BACK (we see the
-  // chair's back, which reads as "person facing south at the table").
-  //
-  // Lower dining (south of the big communal table): three small tables
-  // spaced across the hall (west / mid / east).
-  place('SMALL_TABLE_FRONT', 3, 16),
-  place('WOODEN_CHAIR_BACK', 3, 15),
-  place('WOODEN_CHAIR_BACK', 4, 15),
-  place('WOODEN_CHAIR_FRONT', 3, 17),
-  place('WOODEN_CHAIR_FRONT', 4, 17),
-
-  place('SMALL_TABLE_FRONT', 7, 16),
-  place('WOODEN_CHAIR_BACK', 7, 15),
-  place('WOODEN_CHAIR_BACK', 8, 15),
-  place('WOODEN_CHAIR_FRONT', 7, 17),
-  place('WOODEN_CHAIR_FRONT', 8, 17),
-
-  place('SMALL_TABLE_FRONT', 14, 16),
-  place('WOODEN_CHAIR_BACK', 14, 15),
-  place('WOODEN_CHAIR_BACK', 15, 15),
-  place('WOODEN_CHAIR_FRONT', 14, 17),
-  place('WOODEN_CHAIR_FRONT', 15, 17),
-
-  // Upper-left open dining: two small tables + chairs and a few plants
-  // (kitchen prep removed — fills the visual gap without blocking the
-  // west corridor to the counter).
-  place('SMALL_TABLE_FRONT', 2, 3),
-  place('WOODEN_CHAIR_BACK', 2, 2),
-  place('WOODEN_CHAIR_BACK', 3, 2),
-  place('WOODEN_CHAIR_FRONT', 2, 4),
-  place('WOODEN_CHAIR_FRONT', 3, 4),
-
-  place('SMALL_TABLE_FRONT', 5, 7),
-  place('WOODEN_CHAIR_BACK', 5, 6),
-  place('WOODEN_CHAIR_BACK', 6, 6),
-  place('WOODEN_CHAIR_FRONT', 5, 8),
-  place('WOODEN_CHAIR_FRONT', 6, 8),
-
-  place('PLANT', 1, 2),
-  place('PLANT', 4, 1),
-  place('PLANT', 6, 4),
-
-  // Dispatch corner (bottom-left) — whiteboard with delivery info
-  place('WHITEBOARD', 1, 16),
-
-  // Decor — plants scattered to make the room feel lived-in. Plant
-  // behind the tie guy (north of him on the counter band) so it reads
-  // as standing decoration behind the diner without crowding him.
-  place('PLANT', 12, 9),  // behind tie guy on the counter band
-  place('PLANT', 15, 17), // bottom-right corner (tight room)
-  place('PLANT', 1, 11),  // left wall by big table
-  place('PLANT', 15, 4),  // upper-right by east wall
-  place('PLANT', 14, 5),  // upper-mid open area
-  place('PLANT', 6, 17),  // bottom-left dispatch area (clear of courier home)
-  place('CACTUS', 13, 11), // by the open central walkway
-  place('BIN', 15, 18),
-  place('COFFEE', 10, 2),
-];
-
-// ── Interactables (stations) ──────────────────────────────────────
+/** Each entry maps an on-table pixel-art item (top-left tile + def-id) to
+ *  its station. Items are scattered across the table surface (cols 7–14,
+ *  rows 7–10) to look naturally placed rather than lined up in a row.
+ *  The player walks to the south-aisle tile (row 11) under each item. */
+const TABLE_STATIONS = [
+  // Dodster wrap — represents dodster consumption ('capitals' station).
+  // Sits at the west end of the table, near the west-sofa diner.
+  {
+    glowCol: 7,
+    glowRow: 8,
+    glowW: 2,
+    glowH: 1,
+    defId: 'DODSTER_WRAP',
+    stationId: 'capitals',
+    label: 'Москва и Петербург',
+  },
+  {
+    glowCol: 9,
+    glowRow: 7,
+    glowW: 2,
+    glowH: 2,
+    defId: 'RANCH_PIZZA',
+    stationId: 'regions',
+    label: 'Карта России',
+  },
+  {
+    glowCol: 11,
+    glowRow: 8,
+    glowW: 2,
+    glowH: 2,
+    defId: 'VEGGIE_PIZZA',
+    stationId: 'tile_map',
+    label: 'Карты регионов',
+  },
+  // Muffin is the 1×1 holiday icon — sits near the east-sofa diner.
+  {
+    glowCol: 14,
+    glowRow: 7,
+    glowW: 1,
+    glowH: 1,
+    defId: 'MUFFIN',
+    stationId: 'holidays',
+    label: 'Праздники',
+  },
+] as const;
 
 const interactables: Interactable[] = [
-  { id: 'register', col: 12, row: 7, label: 'Касса' },
-  // Courier-style station near the whiteboard — covers delivery time +
-  // 60-minute promise.
-  { id: 'dispatch', col: 2, row: 18, label: 'Доставка' },
-  // Stations south of the big communal table (table at col 11 row 11):
-  // west / center / east floor tiles.
-  { id: 'capitals', col: 10, row: 15, label: 'Москва и Петербург' },
-  { id: 'tile_map', col: 12, row: 15, label: 'Карты регионов' },
-  { id: 'regions', col: 14, row: 15, label: 'Карта России' },
-  // Holiday ordering quiz — east dining strip below the counter band.
-  { id: 'holidays', col: 14, row: 10, label: 'Праздники' },
+  {
+    id: 'register',
+    col: 3,
+    row: 5,
+    label: 'Касса',
+    npcId: 'host_reg',
+    bubbleText: 'У кассы свежая статистика чеков — подойди, покажу.',
+  },
+  {
+    id: 'dispatch',
+    col: 3,
+    row: 14,
+    label: 'Доставка',
+    npcId: 'host_disp',
+    bubbleText: 'Про доставку и зал спорят каждый день — есть что показать.',
+  },
+  ...TABLE_STATIONS.map((t) => ({
+    id: t.stationId,
+    // Walk-to tile sits on the south aisle (row 11) directly under the
+    // item's centre. For 2-wide items centre col = glowCol + 1; for the
+    // single-tile muffin we just walk to the same column.
+    col: t.glowW > 1 ? t.glowCol + 1 : t.glowCol,
+    row: 11,
+    label: t.label,
+    glowCol: t.glowCol,
+    glowRow: t.glowRow,
+    glowFootprintW: t.glowW,
+    glowFootprintH: t.glowH,
+  })),
 ];
 
-// ── Characters ─────────────────────────────────────────────────────
+interface NpcDef {
+  id: string;
+  paletteIndex: number;
+  col: number;
+  row: number;
+  dir: Direction;
+  name: string;
+  seated: boolean;
+  wanders: boolean;
+  stillSeated?: boolean;
+  hatType?: 'orange' | 'orangeLarge' | 'party';
+  hasBackpack?: boolean;
+  wanderRadius?: number;
+}
 
-// Palette index → character sprite sheet:
-//   0 boy with tie     1 blonde with apron     2 person with afro (orange)
-//   3 older with white hair (suit)     4 boy without tie     5 person with red dress
-// Six unique palettes for six characters.
-const characters = [
-  // Sasha (player) — palette 4 (the guy without a tie). Spawns south of
-  // the moved-up table in the open dining area so he can see the whole
-  // pizzeria at the start.
-  createCharacter({
-    id: 'sasha',
-    paletteIndex: 4,
-    col: 13,
-    row: 16,
-    isPlayer: true,
-    name: 'Саша',
-    dir: Direction.UP,
-  }),
-  // Vika (manager) — palette 1 (blonde girl). East of the cash booth;
-  // room was narrowed, so she stays near the east wall tables area.
-  createCharacter({
-    id: 'vika',
-    paletteIndex: 1,
-    col: 14,
-    row: 4,
-    name: 'Вика',
-    dir: Direction.DOWN,
-    wanders: true,
-    wanderRadius: 3,
-  }),
-  // Andrey (white-haired host) — palette 3. With the kitchen area gone,
-  // he no longer roams the prep stations; he's posted behind the big
-  // table by the cash register, sitting on the north sofa.
-  createCharacter({
-    id: 'pizzaiolo_1',
+const NPC_DEFS: NpcDef[] = [
+  // Cashier — white-haired NPC standing behind the register, facing the
+  // customer. Wears the Dodo orange cap. Stays put.
+  {
+    id: 'host_reg',
     paletteIndex: 3,
-    col: 12,
-    row: 1,
-    name: 'Андрей',
+    col: 3,
+    row: 3,
     dir: Direction.DOWN,
+    name: 'Кассир',
+    seated: false,
     wanders: false,
-    seated: true,
-  }),
-
-  // ── Three diners seated on sofas around the big communal table ────
-  // The big table is at cols 11–13, rows 15–18 (south side closest to
-  // viewer is empty). Each diner is from a different federal district
-  // and is placed sitting on a sofa.
-
-  // Diner positions track the moved table (table now at rows 11-14).
-
-  // North side — Far East (Дальневосточный ФО)
-  createCharacter({
-    id: 'diner_far_east',
-    paletteIndex: 0,
-    col: 12,
-    row: 10,
-    name: 'Гость из Владивостока',
-    dir: Direction.DOWN,
-    wanders: false,
-    seated: true,
-  }),
-  // West side — Volga (Приволжский ФО) — palette 2 (afro orange)
-  createCharacter({
-    id: 'diner_volga',
-    paletteIndex: 2,
-    col: 10,
-    row: 12,
-    name: 'Гость из Казани',
+    hatType: 'orange',
+  },
+  {
+    id: 'host_disp',
+    paletteIndex: 3,
+    col: 3,
+    row: 14,
     dir: Direction.RIGHT,
-    wanders: false,
-    seated: true,
-  }),
-  // East side — Siberia (Сибирский ФО)
-  createCharacter({
-    id: 'diner_siberia',
-    paletteIndex: 5,
-    col: 14,
-    row: 12,
-    name: 'Гость из Красноярска',
-    dir: Direction.LEFT,
-    wanders: false,
-    seated: true,
-  }),
-
-  // Courier — palette 1 (blonde with apron-like uniform), with a big
-  // delivery backpack. Stationed in the dispatch corner near the
-  // whiteboard. Volga diner shares the palette but they're far apart.
-  createCharacter({
-    id: 'courier',
-    paletteIndex: 1,
-    col: 4,
-    row: 17,
-    name: 'Дима-курьер',
-    dir: Direction.DOWN,
+    name: 'Курьер',
+    seated: false,
+    hatType: 'orangeLarge',
+    hasBackpack: true,
     wanders: true,
     wanderRadius: 2,
-    hasBackpack: true,
-  }),
+  },
+  {
+    id: 'diner_far_east',
+    paletteIndex: 0,
+    col: 8,
+    row: 5,
+    dir: Direction.DOWN,
+    name: 'Артём (Дальний Восток)',
+    seated: true,
+    wanders: false,
+  },
+  {
+    id: 'diner_siberia',
+    paletteIndex: 5,
+    col: 10,
+    row: 5,
+    dir: Direction.DOWN,
+    name: 'Амина (Южный округ)',
+    seated: true,
+    wanders: false,
+  },
+  {
+    id: 'diner_ural',
+    paletteIndex: 3,
+    col: 12,
+    row: 5,
+    dir: Direction.DOWN,
+    name: 'Матвей (Урал)',
+    seated: true,
+    wanders: false,
+  },
+  // West sofa (SOFA_SIDE at col 6, row 7 — seat tile is row 8).
+  {
+    id: 'diner_volga',
+    paletteIndex: 2,
+    col: 6,
+    row: 8,
+    dir: Direction.RIGHT,
+    name: 'Саша (Центральная Россия)',
+    seated: true,
+    wanders: false,
+  },
+  // East sofa (SOFA_SIDE at col 15, row 7 — seat tile is row 8).
+  {
+    id: 'diner_northwest',
+    paletteIndex: 4,
+    col: 15,
+    row: 8,
+    dir: Direction.LEFT,
+    name: 'Давид (Поволжье)',
+    seated: true,
+    wanders: false,
+  },
+  {
+    id: 'booth_se',
+    paletteIndex: 0,
+    col: 18,
+    row: 15,
+    dir: Direction.UP,
+    name: 'Гость',
+    seated: true,
+    stillSeated: true,
+    wanders: false,
+  },
 ];
 
-export function buildPizzeriaState(): GameState {
+interface BuildOpts {
+  /** Which playable hero is at the wheel. Determines spawn palette + name. */
+  playerChoice?: 'sasha' | 'vika';
+}
+
+const PLAYER_PROFILES: Record<'sasha' | 'vika', { paletteIndex: number; name: string }> = {
+  sasha: { paletteIndex: 4, name: 'Саша' },
+  vika: { paletteIndex: 1, name: 'Настя' },
+};
+
+// Per-pizza rotation angles (degrees, clockwise). Non-pizza station items
+// and decorative pizzas get their own angles for a natural scattered look.
+const PIZZA_ROTATIONS: Partial<Record<string, number>> = {
+  RANCH_PIZZA: 12,
+  VEGGIE_PIZZA: -8,
+  PEPERONI_PIZZA: 20,
+};
+
+function buildFurnitureList(): PlacedFurniture[] {
+  nextUid = 1;
+  // Station items — scattered across the table surface (rows 7–10, cols 7–14)
+  // rather than aligned in a single row, for a naturally "set table" look.
+  const stationItems = TABLE_STATIONS.map((t) =>
+    place(t.defId, t.glowCol, t.glowRow, false, PIZZA_ROTATIONS[t.defId]),
+  );
+
+  return [
+    place('BIG_TABLE', 7, 6),
+    ...stationItems,
+    // ── Decorative non-station pizza (cols 13–14, rows 8–9) ────────────
+    place('PEPERONI_PIZZA', 13, 8, false, PIZZA_ROTATIONS.PEPERONI_PIZZA),
+    // ── Pure table decorations (non-clickable) ─────────────────────────
+    place('TABLE_DODO', 13, 7),
+    place('COFFEE_CUP', 8, 7),
+    place('MILKSHAKE', 12, 7),
+    // ── Sofas around the big table ─────────────────────────────────────
+    place('SOFA_SIDE', 6, 7, false),
+    place('SOFA_SIDE', 15, 7, true),
+    place('SOFA_FRONT', 7, 5),
+    place('SOFA_FRONT', 9, 5),
+    place('SOFA_FRONT', 11, 5),
+    place('SOFA_FRONT', 13, 5),
+    // ── Cash register area (cash sign removed; cashier NPC stands here) ─
+    place('PC_FRONT', 4, 3),
+    place('FRIDGE', 5, 2),
+    place('EXIT_DOOR', 1, 15),
+    // ── Lower-left booth — moved 2 squares east to clear the entrance ──
+    place('SOFA_FRONT', 4, 12),
+    place('SMALL_TABLE_FRONT', 4, 13),
+    place('SOFA_BACK', 4, 15),
+    // ── Upper-right booth ──
+    place('SOFA_FRONT', 17, 2),
+    place('SMALL_TABLE_FRONT', 17, 3),
+    place('SOFA_BACK', 17, 5),
+    // ── Lower-right booth + small surface props on the table ──
+    place('SOFA_FRONT', 17, 12),
+    place('SMALL_TABLE_FRONT', 17, 13),
+    place('SOFA_BACK', 17, 15),
+    place('FRENCH_FRIES', 17, 13),
+    place('CHICKEN_LEGS', 18, 13),
+    // ── Floor decorations near the big table ──
+    place('GIFTS', 6, 9),
+    place('BALLS', 15, 10),
+    // ── Plants ──
+    place('PLANT', 1, 1),
+    place('PLANT', 19, 1),
+    place('PLANT', 5, 15),
+    place('PLANT', 16, 15),
+    place('PLANT', 10, 1),
+    place('PLANT', 14, 1),
+    place('PLANT', 3, 10),
+    place('PLANT', 18, 10),
+  ];
+}
+
+export function buildPizzeriaState(opts: BuildOpts = {}): GameState {
+  const choice = opts.playerChoice ?? 'sasha';
+  const profile = PLAYER_PROFILES[choice];
+  const furniture = buildFurnitureList();
+
+  const player = createCharacter({
+    id: choice,
+    paletteIndex: profile.paletteIndex,
+    col: 10,
+    row: 12,
+    isPlayer: true,
+    name: profile.name,
+    dir: Direction.UP,
+  });
+
+  const characters = [
+    player,
+    ...NPC_DEFS.map((c) =>
+      createCharacter({
+        id: c.id,
+        paletteIndex: c.paletteIndex,
+        col: c.col,
+        row: c.row,
+        dir: c.dir,
+        name: c.name,
+        seated: c.seated,
+        stillSeated: c.stillSeated,
+        wanders: c.wanders,
+        wanderRadius: c.wanders ? 2 : 5,
+        hatType: c.hatType,
+        hasBackpack: c.hasBackpack,
+      }),
+    ),
+  ];
+
   return createGameState({
     cols: COLS,
     rows: NROWS,

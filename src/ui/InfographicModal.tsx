@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { playSound } from '../engine/audio';
 import { getStationSteps, type Station } from '../content/stations';
 import { Infographic, withBase } from './Infographic';
 import { Quiz } from './Quiz';
@@ -21,16 +22,8 @@ export function InfographicModal({ station, onAnswer, onClose }: InfographicModa
   }, [station.id]);
 
   useEffect(() => {
-    const url = withBase('/sound/dodo_sound.mp3');
-    const audio = new Audio(url);
-    audio.volume = 0.5;
-    void audio.play().catch(() => {
-      // Autoplay policy or missing file — ignore silently.
-    });
-    return () => {
-      audio.pause();
-      audio.src = '';
-    };
+    const handle = playSound(withBase('/sound/dodo_sound.mp3'), 0.5);
+    return () => handle.stop();
   }, [station.id]);
 
   const step = steps[stepIndex]!;

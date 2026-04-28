@@ -17,7 +17,80 @@ import {
   type Character,
   type Interactable,
 } from './types';
-import type { GameState } from './gameState';
+import {
+  getInteractableAnchorTile,
+  getQueuedInteractable,
+  type GameState,
+} from './gameState';
+
+/** Set of table-surface item def-ids that participate in the intro fade-in.
+ *  Hover highlight is only applied to items that also have a station
+ *  interactable (checked per-item below using state.interactables). */
+export const FOOD_DEF_IDS = new Set([
+  'PEPERONI_PIZZA',
+  'RANCH_PIZZA',
+  'VEGGIE_PIZZA',
+  'MUFFIN',
+  'DODSTER_WRAP',
+  // decorative drinks, dodo mascot, pizza box — fade in with the food reveal
+  'TABLE_DODO',
+  'PIZZA_BOX',
+  'MILKSHAKE',
+  'COFFEE_CUP',
+  // legacy / decorative — kept so other layouts still highlight them
+  'PIZZA',
+  'PIZZA_GREEN',
+  'PIZZA_WHITE',
+  'BURRITO',
+  'BREAD',
+  'DODSTER',
+]);
+
+/** Total characters in the slogan ("ЕСТЬ ТО, ЧТО НАС" + "ОБЪЕДИНЯЕТ"). */
+const SLOGAN_TOTAL_CHARS = 16 + 10;
+
+/** Compute the slogan + food state based on play-time. The intro plays
+ *  exactly once when the play stage begins.
+ *    0.0 – 1.4s  slogan letters appear one-by-one (typewriter)
+ *    1.4 – 3.4s  full slogan, gentle pulse glow
+ *    3.4 – 4.4s  slogan fades out
+ *    4.0 – 5.0s  food fades in (slight overlap with slogan fade)
+ *    5.0 +       both stable (slogan gone, food fully present)
+ */
+function introAlphas(
+  t: number,
+): { slogan: number; food: number; chars: number; pulse: number } {
+  let slogan: number;
+  let chars: number;
+  let pulse = 0;
+  if (t < 1.4) {
+    chars = Math.floor((t / 1.4) * SLOGAN_TOTAL_CHARS);
+    slogan = 1;
+  } else if (t < 3.4) {
+    chars = SLOGAN_TOTAL_CHARS;
+    slogan = 1;
+    // 0..1 sinusoidal pulse — used for shadow blur intensity
+    pulse = 0.5 + 0.5 * Math.sin((t - 1.4) * 4.2);
+  } else if (t < 4.4) {
+    chars = SLOGAN_TOTAL_CHARS;
+    slogan = 1 - (t - 3.4);
+  } else {
+    chars = SLOGAN_TOTAL_CHARS;
+    slogan = 0;
+  }
+
+  let food: number;
+  if (t < 4.0) food = 0;
+  else if (t < 5.0) food = (t - 4.0) / 1.0;
+  else food = 1;
+
+  return {
+    slogan: Math.max(0, Math.min(1, slogan)),
+    food: Math.max(0, Math.min(1, food)),
+    chars,
+    pulse: Math.max(0, Math.min(1, pulse)),
+  };
+}
 
 const TILE_COLORS: Record<TileType, string> = {
   [TileType.WALL]: DODO_PALETTE.wall,
@@ -98,32 +171,24 @@ export function renderFrame(
     }
   }
 
-  // Interactable highlights: pulsing yellow ring while pending; green + tick when done.
-  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 350);
-  for (const it of state.interactables) {
-    const isActive = it.id === state.activePromptId;
-    const isCompleted = state.completedStationIds.has(it.id);
+  // Pre-compute intro alphas — the slogan engraving fades out, then food
+  // fades in. After ~4.5s both are stable and the table looks "set".
+  const alphas = introAlphas(state.introElapsed);
 
-    if (isCompleted) {
-      ctx.strokeStyle = DODO_PALETTE.green;
-      ctx.lineWidth = Math.max(2, ZOOM);
-      ctx.globalAlpha = isActive ? 0.95 : 0.7;
-      ctx.strokeRect(offsetX + it.col * s + 1, offsetY + it.row * s + 1, s - 2, s - 2);
-      if (isActive) {
-        ctx.globalAlpha = 0.65;
-        ctx.strokeRect(offsetX + it.col * s - 2, offsetY + it.row * s - 2, s + 4, s + 4);
-      }
-      drawCompletedTick(ctx, offsetX + it.col * s, offsetY + it.row * s, s);
-    } else {
-      ctx.strokeStyle = DODO_PALETTE.yellow;
-      ctx.lineWidth = Math.max(2, ZOOM);
-      ctx.globalAlpha = isActive ? 0.55 + pulse * 0.45 : 0.18 + pulse * 0.18;
-      ctx.strokeRect(offsetX + it.col * s + 1, offsetY + it.row * s + 1, s - 2, s - 2);
-      if (isActive) {
-        ctx.globalAlpha = 0.35 + pulse * 0.35;
-        ctx.strokeRect(offsetX + it.col * s - 2, offsetY + it.row * s - 2, s + 4, s + 4);
-      }
-    }
+  // Completed-station tick — drawn over the linked NPC's tile (not a
+  // fixed floor tile) so the green ring follows the visitor as they
+  // wander. Static-tile interactables (e.g. legacy fixtures with no
+  // npcId) fall back to their col/row.
+  for (const it of state.interactables) {
+    if (!state.completedStationIds.has(it.id)) continue;
+    const pos = getInteractableAnchorTile(it, state);
+    const tileX = offsetX + pos.col * s;
+    const tileY = offsetY + pos.row * s;
+    ctx.strokeStyle = DODO_PALETTE.green;
+    ctx.lineWidth = Math.max(2, ZOOM);
+    ctx.globalAlpha = 0.55;
+    ctx.strokeRect(tileX + 1, tileY + 1, s - 2, s - 2);
+    drawCompletedTick(ctx, tileX, tileY, s);
   }
   ctx.globalAlpha = 1;
 
@@ -131,17 +196,89 @@ export function renderFrame(
   type Drawable = { zY: number; draw: () => void };
   const drawables: Drawable[] = [];
 
+  // Track BIG_TABLE world position so the slogan overlay + dashed lines can
+  // be anchored exactly on the table surface.
+  let bigTableAnchor: { x: number; y: number; w: number } | null = null;
+
+  // Pre-compute which (col,row) positions have a glow interactable so we can
+  // suppress the hover-brightness on decorative items with no station.
+  const stationGlowPositions = new Set<string>();
+  for (const it of state.interactables) {
+    if (it.glowCol != null && it.glowRow != null) {
+      stationGlowPositions.add(`${it.glowCol},${it.glowRow}`);
+    }
+  }
+
   for (const item of state.furniture) {
     const def = getFurnitureDef(item.defId);
     if (!def) continue;
     const img = getFurnitureImage(def.src);
     if (!img) continue;
-    const x = offsetX + item.col * s;
+    const xOffset = (def.xOffsetPx ?? 0) * ZOOM;
+    const x = offsetX + item.col * s + xOffset;
     const yOffset = (def.yOffsetPx ?? 0) * ZOOM;
     const y =
       offsetY + item.row * s + (def.footprintH * TILE_SIZE - def.h) * ZOOM + yOffset;
-    const drawW = def.w * ZOOM;
-    const drawH = def.h * ZOOM;
+    const baseDrawW = def.w * ZOOM;
+    const baseDrawH = def.h * ZOOM;
+    let drawW = baseDrawW;
+    let drawH = baseDrawH;
+    if (def.preserveAspect && img.width > 0 && img.height > 0) {
+      const scale = Math.min(baseDrawW / img.width, baseDrawH / img.height);
+      drawW = img.width * scale;
+      drawH = img.height * scale;
+    }
+    const drawX = x + (baseDrawW - drawW) / 2;
+    const drawY = y + (baseDrawH - drawH);
+    if (item.defId === 'BIG_TABLE') {
+      bigTableAnchor = { x, y, w: drawW };
+      // Dashed horizontal lines on the upper table surface — fade in with food.
+      if (alphas.food > 0.01) {
+        const tblX = x;
+        const tblY = y;
+        const tblW = drawW;
+        const lineFood = alphas.food;
+        drawables.push({
+          zY: (item.row + 2) * TILE_SIZE + 5001,
+          draw: () => {
+            ctx.save();
+            ctx.globalAlpha = lineFood * 0.28;
+            ctx.strokeStyle = '#A07840';
+            ctx.lineWidth = Math.max(1, ZOOM * 0.5);
+            ctx.setLineDash([4 * ZOOM, 3 * ZOOM]);
+            const pad = 4 * ZOOM;
+            for (let row = 1; row <= 2; row++) {
+              const ly = tblY + row * s + 0.5;
+              ctx.beginPath();
+              ctx.moveTo(tblX + pad, ly);
+              ctx.lineTo(tblX + tblW - pad, ly);
+              ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            ctx.restore();
+          },
+        });
+      }
+    }
+    // Food fades in during the intro. Before it's "served" we don't
+    // render it at all so it doesn't block the player's walking path
+    // visually mid-fade either.
+    const isFood = FOOD_DEF_IDS.has(item.defId);
+    const itemAlpha = isFood ? alphas.food : 1;
+    if (isFood && itemAlpha <= 0.01) continue;
+    const ht = state.hoveredTile;
+    // Hover highlight only applies to items that have a station interactable
+    // at the same top-left position — decorative pizzas/drinks don't light up.
+    const hasStation = stationGlowPositions.has(`${item.col},${item.row}`);
+    const isHovered =
+      isFood &&
+      hasStation &&
+      alphas.food >= 1 &&
+      ht != null &&
+      ht.col >= item.col &&
+      ht.col < item.col + def.footprintW &&
+      ht.row >= item.row &&
+      ht.row < item.row + def.footprintH;
     // Z-sort:
     //   - Surface items (pizza on table) jump way up so they always draw in
     //     front of the taller furniture they sit on.
@@ -149,26 +286,75 @@ export function renderFrame(
     //     cap zY to first-row bottom so a seated character renders in front.
     //   - Default: bottom-edge of the footprint.
     let zY: number;
-    if (def.surface) {
+    if (def.flat) {
+      zY = -10000 + item.row * TILE_SIZE;
+    } else if (def.surface) {
       zY = (item.row + def.footprintH) * TILE_SIZE + 10000;
     } else if (def.seatLow) {
       zY = (item.row + 1) * TILE_SIZE;
     } else {
       zY = (item.row + def.footprintH) * TILE_SIZE;
     }
+    const wantSmoothing = def.smooth === true;
+    const itemRotation = item.rotation ?? 0;
     drawables.push({
       zY,
       draw: () => {
-        if (item.mirror) {
+        if (itemAlpha < 1) ctx.globalAlpha = itemAlpha;
+        if (isHovered) ctx.filter = 'brightness(1.55)';
+        if (wantSmoothing) ctx.imageSmoothingEnabled = true;
+        if (itemRotation !== 0) {
+          const rcx = drawX + drawW / 2;
+          const rcy = drawY + drawH / 2;
           ctx.save();
-          ctx.translate(x + drawW, y);
+          ctx.translate(rcx, rcy);
+          ctx.rotate((itemRotation * Math.PI) / 180);
+          ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+          ctx.restore();
+        } else if (item.mirror) {
+          ctx.save();
+          ctx.translate(drawX + drawW, drawY);
           ctx.scale(-1, 1);
           ctx.drawImage(img, 0, 0, drawW, drawH);
           ctx.restore();
         } else {
-          ctx.drawImage(img, x, y, drawW, drawH);
+          ctx.drawImage(img, drawX, drawY, drawW, drawH);
         }
+        if (wantSmoothing) ctx.imageSmoothingEnabled = false;
+        if (isHovered) ctx.filter = 'none';
+        if (itemAlpha < 1) ctx.globalAlpha = 1;
       },
+    });
+  }
+
+  // Slogan engraving overlay — drawn as a separate drawable on top of the
+  // BIG_TABLE so it can be alpha-faded during the intro reveal. zY is
+  // chosen to sort just above the table itself but below any food
+  // surface items, so when food fades in it visually replaces the
+  // slogan rather than the slogan poking through cooked food.
+  if (bigTableAnchor && alphas.slogan > 0.01) {
+    const anchor = bigTableAnchor;
+    // BIG_TABLE is anchored at row 6 (top of the table sprite). The
+    // surface where the slogan sits is the upper half of the sprite,
+    // around y = top + 18..30 (in sprite px). We z-sort on the surface
+    // row so the slogan paints just after the table draws.
+    const tableSurfaceRow = 7; // row 6 is decorative back-rim, row 7 is surface top
+    const zY = (tableSurfaceRow + 1) * TILE_SIZE + 5000;
+    const sloganAlpha = alphas.slogan;
+    const sloganChars = alphas.chars;
+    const sloganPulse = alphas.pulse;
+    drawables.push({
+      zY,
+      draw: () =>
+        drawTableSlogan(
+          ctx,
+          anchor.x,
+          anchor.y,
+          anchor.w,
+          sloganAlpha,
+          sloganChars,
+          sloganPulse,
+        ),
     });
   }
 
@@ -182,26 +368,45 @@ export function renderFrame(
     const f = getCharFrameRect(sheet, ch.dir, frameIdx);
     const drawW = CHAR_W * ZOOM;
     const drawH = CHAR_H * ZOOM;
-    // Anchor: feet at character's tile center bottom; seated diners drop
-    // by ~10 px so they look like they're leaning into the table, and
-    // their zY is boosted so they always draw in front of nearby
-    // furniture (sofa, table top decoration, etc.) — same trick
-    // pixel-agents uses.
-    const seatedDrop = ch.seated ? 10 : 0;
+    let seatedDrop = 0;
+    if (ch.seated) {
+      if (ch.dir === Direction.UP || ch.dir === Direction.DOWN) seatedDrop = 10;
+      else seatedDrop = -4; // LEFT/RIGHT — sit a bit higher in the side sofa
+    }
     const seatedZBoost = ch.seated ? 1000 : 0;
     const feetX = offsetX + (ch.x - CHAR_W / 2) * ZOOM;
     const feetY = offsetY + (ch.y - CHAR_H + TILE_SIZE / 2 + seatedDrop) * ZOOM;
     const zY = ch.y + TILE_SIZE / 2 + 0.5 + seatedDrop + seatedZBoost;
-    const isPlayer = ch.isPlayer;
     const hasBackpack = ch.hasBackpack;
     const dirForBackpack = ch.dir;
+    const dir = ch.dir;
+    const hatType = ch.hatType;
+    // North-sofa diners face DOWN — crop bottom 8px so legs don't show over table.
+    // Booth-back guests face UP (away) — crop bottom 12px behind the sofa back.
+    const cropBottomSpritePx =
+      ch.seated && ch.dir === Direction.DOWN ? 8 :
+      ch.stillSeated && ch.dir === Direction.UP ? 12 : 0;
+    const visibleSpriteH = CHAR_H - cropBottomSpritePx;
+    const visibleDrawH = visibleSpriteH * ZOOM;
     drawables.push({
       zY,
       draw: () => {
         if (hasBackpack) drawBackpack(ctx, feetX, feetY, drawW, drawH, dirForBackpack, true);
-        ctx.drawImage(f.source, f.sx, f.sy, f.sw, f.sh, feetX, feetY, drawW, drawH);
+        ctx.drawImage(
+          f.source,
+          f.sx,
+          f.sy,
+          f.sw,
+          visibleSpriteH,
+          feetX,
+          feetY,
+          drawW,
+          visibleDrawH,
+        );
         if (hasBackpack) drawBackpack(ctx, feetX, feetY, drawW, drawH, dirForBackpack, false);
-        if (isPlayer) drawPlayerMarker(ctx, feetX + drawW / 2, feetY - 4 * ZOOM);
+        if (hatType === 'orange') drawPlayerHat(ctx, feetX, feetY, drawW, dir);
+        else if (hatType === 'orangeLarge') drawPlayerHat(ctx, feetX, feetY, drawW, dir, 1.4);
+        else if (hatType === 'party') drawPartyHat(ctx, feetX, feetY, drawW, dir);
       },
     });
   }
@@ -209,22 +414,75 @@ export function renderFrame(
   drawables.sort((a, b) => a.zY - b.zY);
   for (const d of drawables) d.draw();
 
-  // Yellow waypoint triangles above station tiles (after furniture).
-  for (const it of state.interactables) {
-    const cx = offsetX + it.col * s + s / 2;
-    const cy = offsetY + it.row * s - 2 * ZOOM;
-    drawStationTriangleMarker(ctx, cx, cy);
+  // Bouncing orange ▼ pointer above the player's head. Restored as a
+  // navigational aid after we'd briefly killed it for clutter — turns
+  // out it really does help newcomers locate themselves on a busy map.
+  drawPlayerPointer(ctx, state.player, offsetX, offsetY, state.introElapsed);
+
+  // Active station: NPC stations keep a speech bubble; table stations use a
+  // glowing highlight on the surface puck when the player is in range.
+  const activeStation = getQueuedInteractable(state);
+  if (activeStation) {
+    const playerNear = state.activePromptId === activeStation.id;
+    const hasGlow =
+      activeStation.glowCol != null && activeStation.glowRow != null;
+    if (hasGlow) {
+      const gc = activeStation.glowCol!;
+      const gr = activeStation.glowRow!;
+      const fw = activeStation.glowFootprintW ?? 1;
+      const fh = activeStation.glowFootprintH ?? 1;
+      const tileX = offsetX + gc * s;
+      const tileY = offsetY + gr * s;
+      const rectW = fw * s;
+      const rectH = fh * s;
+      const pulse = 0.42 + 0.38 * Math.sin(state.introElapsed * 5.5);
+      if (playerNear) {
+        ctx.save();
+        ctx.globalAlpha = 0.22 + 0.28 * pulse;
+        ctx.fillStyle = '#FFF4D6';
+        ctx.fillRect(tileX - 2 * ZOOM, tileY - 2 * ZOOM, rectW + 4 * ZOOM, rectH + 4 * ZOOM);
+        ctx.globalAlpha = 0.55 + 0.25 * pulse;
+        ctx.strokeStyle = DODO_PALETTE.red;
+        ctx.lineWidth = Math.max(2, 3 * ZOOM);
+        ctx.strokeRect(tileX - 1 * ZOOM, tileY - 1 * ZOOM, rectW + 2 * ZOOM, rectH + 2 * ZOOM);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.globalAlpha = 0.18 + 0.18 * pulse;
+        ctx.strokeStyle = DODO_PALETTE.red;
+        ctx.lineWidth = Math.max(1, 2 * ZOOM);
+        ctx.setLineDash([4 * ZOOM, 3 * ZOOM]);
+        ctx.strokeRect(tileX + 1, tileY + 1, rectW - 2, rectH - 2);
+        ctx.restore();
+      }
+    } else {
+      const npc = state.characters.find((c) => c.id === activeStation.npcId);
+      if (npc) {
+        let bubbleDrop = 0;
+        if (npc.seated) bubbleDrop = npc.dir === Direction.UP || npc.dir === Direction.DOWN ? 10 : 0;
+        const cx = offsetX + npc.x * ZOOM;
+        const cy = offsetY + (npc.y - CHAR_H + TILE_SIZE / 2 + bubbleDrop - 2) * ZOOM;
+        const line =
+          activeStation.bubbleText ??
+          activeStation.label ??
+          'Подойди поближе — расскажу про станцию.';
+        const text = playerNear ? `${line}\n\nНажми E, чтобы открыть.` : line;
+        drawSpeechBubble(ctx, text, cx, cy, 999);
+      }
+    }
   }
 
-  // Speech bubbles drawn on top in DOM-pixel space (still scaled by ZOOM).
-  // Bubble anchor follows the character's *visual* head, accounting for the
-  // seated drop, so seated diners' bubbles sit just above their heads
-  // instead of floating high above the un-seated position.
+  // Ambient chatter bubbles — anchored to character heads. Skipped for
+  // the active-station NPC so their station bubble doesn't fight a
+  // chatter line for the same airspace.
+  const activeNpcId = activeStation?.npcId;
   for (const ch of state.characters) {
     if (!ch.bubble) continue;
-    const seatedDrop = ch.seated ? 10 : 0;
+    if (ch.id === activeNpcId) continue;
+    let bubbleDrop = 0;
+    if (ch.seated) bubbleDrop = (ch.dir === Direction.UP || ch.dir === Direction.DOWN) ? 10 : 0;
     const px = offsetX + ch.x * ZOOM;
-    const py = offsetY + (ch.y - CHAR_H + TILE_SIZE / 2 + seatedDrop - 2) * ZOOM;
+    const py = offsetY + (ch.y - CHAR_H + TILE_SIZE / 2 + bubbleDrop - 2) * ZOOM;
     drawSpeechBubble(ctx, ch.bubble.text, px, py, ch.bubble.remaining);
   }
 }
@@ -318,56 +576,202 @@ function drawCompletedTick(
   ctx.restore();
 }
 
-/** Small down-pointing triangle above a station tile (corporate yellow + outline). */
-function drawStationTriangleMarker(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
-  const px = ZOOM;
-  const halfW = 5 * px;
-  const h = 5 * px;
-  const pad = px;
+/** Draw the "Есть то, что нас объединяет" engraving across the table
+ *  surface, in apron-shadow brown with a 1-px wood-hi highlight beneath
+ *  to read as wood-burned. Alpha-modulated by the intro animation so it
+ *  fades out before the food fades in. */
+function drawTableSlogan(
+  ctx: CanvasRenderingContext2D,
+  tableScreenX: number,
+  tableScreenY: number,
+  tableScreenW: number,
+  alpha: number,
+  charsRevealed: number,
+  pulse: number,
+): void {
+  if (alpha <= 0) return;
   ctx.save();
-  ctx.translate(Math.round(cx), Math.round(cy));
-  // Outline
-  ctx.fillStyle = DODO_PALETTE.charcoal;
-  ctx.beginPath();
-  ctx.moveTo(-halfW - pad, -pad);
-  ctx.lineTo(halfW + pad, -pad);
-  ctx.lineTo(0, h + pad);
-  ctx.closePath();
-  ctx.fill();
-  // Fill
-  ctx.fillStyle = DODO_PALETTE.yellow;
-  ctx.beginPath();
-  ctx.moveTo(-halfW, 0);
-  ctx.lineTo(halfW, 0);
-  ctx.lineTo(0, h);
-  ctx.closePath();
-  ctx.fill();
+  ctx.globalAlpha = alpha;
+  ctx.imageSmoothingEnabled = false;
+  const line1Full = 'ЕСТЬ ТО, ЧТО НАС';
+  const line2Full = 'ОБЪЕДИНЯЕТ';
+  const line1 = line1Full.substring(0, Math.min(line1Full.length, charsRevealed));
+  const line2 = line2Full.substring(0, Math.max(0, charsRevealed - line1Full.length));
+  const cx = tableScreenX + tableScreenW / 2;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  // Auto-fit: scale font so the longer line fills ~90% of the table width.
+  const maxFontPx = 14 * ZOOM;
+  ctx.font = `bold ${maxFontPx}px sans-serif`;
+  const probeW = ctx.measureText(line1Full).width;
+  const fitScale = Math.min(1, (tableScreenW * 0.90) / probeW);
+  const fontPx = Math.round(maxFontPx * fitScale);
+  ctx.font = `bold ${fontPx}px sans-serif`;
+  const lineGap = Math.round(fontPx * 1.35);
+  const twoLineH = fontPx + lineGap;
+  // Center both lines vertically in the table body (skip the top decorative row)
+  const surfaceTop = tableScreenY + TILE_SIZE * ZOOM;
+  const surfaceH = 3 * TILE_SIZE * ZOOM;
+  const baseY = Math.round(surfaceTop + (surfaceH - twoLineH) / 2);
+  // Pulsing warm glow draws the eye to the engraving once it's all there.
+  if (pulse > 0) {
+    ctx.shadowColor = `rgba(255, 195, 90, ${0.55 + 0.35 * pulse})`;
+    ctx.shadowBlur = 6 * ZOOM * pulse;
+  }
+  // Highlight pass (wood-hi, drawn 1 zoom-px lower) to chisel the engraving
+  ctx.fillStyle = '#E0B07A';
+  ctx.fillText(line1, cx, baseY + ZOOM);
+  ctx.fillText(line2, cx, baseY + lineGap + ZOOM);
+  // Dark text pass (apron-shadow)
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#3A2308';
+  ctx.fillText(line1, cx, baseY);
+  ctx.fillText(line2, cx, baseY + lineGap);
   ctx.restore();
 }
 
-function drawPlayerMarker(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
-  const t = (performance.now() / 400) % (Math.PI * 2);
-  const bob = Math.sin(t) * 2;
-  const pad = 2;
-  // Pixel chevron (down-pointing arrow) in Dodo orange with charcoal outline
-  ctx.save();
-  ctx.translate(Math.round(cx), Math.round(cy + bob));
-  // Outline
+/** Pixel-art Dodo orange cap drawn on top of the player sprite. The cap
+ *  sits above their hair, follows the four facing directions, and uses
+ *  the same charcoal/orange/yellow palette as the rest of the brand. */
+function drawPlayerHat(
+  ctx: CanvasRenderingContext2D,
+  feetX: number,
+  feetY: number,
+  drawW: number,
+  dir: Direction,
+  scale = 1,
+): void {
+  const px = ZOOM * scale;
+  const cx = feetX + drawW / 2;
+  // Larger caps shift down so they don't float above the head.
+  const hatTop = feetY + Math.round((scale - 1) * 2 * ZOOM) - 2 * ZOOM;
+  const cap = DODO_PALETTE.orange;
+  const capDark = DODO_PALETTE.redDark;
+  const charcoal = DODO_PALETTE.charcoal;
+  const cream = '#FFF7E6';
+
+  // Brim — wider than the crown so it reads as a baseball-style cap
+  const brimW = 11 * px;
+  const brimH = 1 * px;
+  const crownW = 9 * px;
+  const crownH = 3 * px;
+
+  // Direction tweaks: when facing left/right, shift the brim toward
+  // the facing side so the cap silhouette reads as a profile.
+  let brimDx = 0;
+  if (dir === Direction.LEFT) brimDx = -2 * px;
+  else if (dir === Direction.RIGHT) brimDx = 2 * px;
+
+  // Shadow under the brim
+  ctx.fillStyle = charcoal;
+  ctx.fillRect(Math.round(cx - brimW / 2 + brimDx) - px, hatTop + crownH, brimW + 2 * px, brimH + px);
+  // Crown outline
+  ctx.fillRect(Math.round(cx - crownW / 2) - px, hatTop - px, crownW + 2 * px, crownH + 2 * px);
+  // Crown body
+  ctx.fillStyle = cap;
+  ctx.fillRect(Math.round(cx - crownW / 2), hatTop, crownW, crownH);
+  // Crown highlight (top-left)
+  ctx.fillStyle = '#FFB04A';
+  ctx.fillRect(Math.round(cx - crownW / 2), hatTop, crownW, px);
+  // Crown shadow band along the bottom
+  ctx.fillStyle = capDark;
+  ctx.fillRect(Math.round(cx - crownW / 2), hatTop + crownH - px, crownW, px);
+  // Brim itself
+  ctx.fillStyle = capDark;
+  ctx.fillRect(Math.round(cx - brimW / 2 + brimDx), hatTop + crownH, brimW, brimH);
+  // Tiny cream front-panel "DODO" tag (only when facing the camera)
+  if (dir === Direction.DOWN) {
+    ctx.fillStyle = cream;
+    ctx.fillRect(Math.round(cx - 2 * px), hatTop + px, 4 * px, px);
+  }
+}
+
+/** Procedural pixel-art party hat — conical shape in Dodo orange/yellow
+ *  stripes with a cream pom-pom tip. Drawn without any external image so
+ *  it always renders even before asset loading completes. */
+function drawPartyHat(
+  ctx: CanvasRenderingContext2D,
+  feetX: number,
+  feetY: number,
+  drawW: number,
+  _dir: Direction,
+): void {
+  const px = ZOOM;
+  const cx = feetX + drawW / 2;
+  const rows = 9;     // sprite-pixel rows in the cone body
+  const top = feetY - (rows - 2) * px; // brim at feetY + 2*px (covers hair)
+  const maxW = 10;    // base width in sprite pixels
+
+  // Cone body: rows narrow from base (bottom) to apex (top).
+  // Draw from top (row 0) down so outlines paint correctly.
+  for (let r = 0; r < rows; r++) {
+    const w = Math.round(1 + r * (maxW - 1) / (rows - 1));
+    const rx = Math.round(cx - (w * px) / 2);
+    const ry = Math.round(top + r * px);
+    // Alternating orange/yellow stripes
+    ctx.fillStyle = r % 2 === 0 ? DODO_PALETTE.orange : DODO_PALETTE.yellow;
+    ctx.fillRect(rx, ry, w * px, px);
+  }
+  // Left/right outline along the cone edges
   ctx.fillStyle = DODO_PALETTE.charcoal;
-  ctx.fillRect(-7 - pad, -10 - pad, 14 + pad * 2, 6 + pad * 2);
+  for (let r = 0; r < rows; r++) {
+    const w = Math.round(1 + r * (maxW - 1) / (rows - 1));
+    const rx = Math.round(cx - (w * px) / 2);
+    const ry = Math.round(top + r * px);
+    ctx.fillRect(rx - px, ry, px, px);
+    ctx.fillRect(rx + w * px, ry, px, px);
+  }
+  // Pom-pom at apex (cream dot, charcoal stem)
+  const pomX = Math.round(cx);
+  ctx.fillStyle = DODO_PALETTE.charcoal;
+  ctx.fillRect(pomX - px, top - 2 * px, 2 * px, 2 * px + px);
+  ctx.fillStyle = '#FFF7E6';
+  ctx.fillRect(pomX - px, top - 2 * px, 2 * px, 2 * px);
+  // Band at base (dark-orange outline + red-dark fill)
+  const baseY = Math.round(top + rows * px);
+  const bandX = Math.round(cx - (maxW * px) / 2);
+  ctx.fillStyle = DODO_PALETTE.charcoal;
+  ctx.fillRect(bandX - px, baseY, maxW * px + 2 * px, px + px);
+  ctx.fillStyle = DODO_PALETTE.redDark;
+  ctx.fillRect(bandX, baseY, maxW * px, px);
+}
+
+/** Pulsing orange ▼ pointer over the player's head. Helps newcomers
+ *  locate themselves on the busy map. The pointer fades in only after
+ *  the intro animation so it doesn't fight the slogan reveal. */
+function drawPlayerPointer(
+  ctx: CanvasRenderingContext2D,
+  player: Character,
+  offsetX: number,
+  offsetY: number,
+  introElapsed: number,
+): void {
+  // Hold the pointer back during the intro reveal so the slogan reads
+  // first. Fade it in over 0.6s once the food has finished arriving.
+  const startT = 4.6;
+  if (introElapsed < startT) return;
+  const fadeT = Math.min(1, (introElapsed - startT) / 0.6);
+  const t = performance.now() / 1000;
+  const bob = Math.sin(t * 3) * 2 * ZOOM;
+  const px = offsetX + player.x * ZOOM;
+  const py = offsetY + (player.y - CHAR_H + TILE_SIZE / 2 - 6) * ZOOM + bob;
+
+  ctx.save();
+  ctx.globalAlpha = fadeT;
+  // Charcoal outline triangle (slightly larger)
+  ctx.fillStyle = DODO_PALETTE.charcoal;
   ctx.beginPath();
-  ctx.moveTo(-7 - pad, -4 - pad);
-  ctx.lineTo(7 + pad, -4 - pad);
-  ctx.lineTo(0, 6 + pad);
+  ctx.moveTo(px - 8 * ZOOM, py - 7 * ZOOM);
+  ctx.lineTo(px + 8 * ZOOM, py - 7 * ZOOM);
+  ctx.lineTo(px, py + 1 * ZOOM);
   ctx.closePath();
   ctx.fill();
-  // Fill — corporate orange
+  // Orange fill triangle
   ctx.fillStyle = DODO_PALETTE.orange;
-  ctx.fillRect(-7, -10, 14, 6);
   ctx.beginPath();
-  ctx.moveTo(-7, -4);
-  ctx.lineTo(7, -4);
-  ctx.lineTo(0, 6);
+  ctx.moveTo(px - 6 * ZOOM, py - 6 * ZOOM);
+  ctx.lineTo(px + 6 * ZOOM, py - 6 * ZOOM);
+  ctx.lineTo(px, py - 0 * ZOOM);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -453,9 +857,11 @@ function drawSpeechBubble(
   ctx.restore();
 }
 
-/** Hit-test a screen click against an interactable. Hit area is a 3x3 tile
- *  region centered on the interactable tile, plus a generous slop above so
- *  clicks on tall furniture sprites still register. */
+/** Hit-test a screen click against an interactable. Scans ALL interactables
+ *  (matches dodo-game) and returns the closest match within s*1.4 of the
+ *  click. App.handleInteract decides whether to actually open the modal — we
+ *  let any station-tile click walk the player there so the queued station's
+ *  modal opens on arrival via pendingInteract. */
 export function hitTestInteractable(
   state: GameState,
   camera: Camera,
@@ -469,17 +875,60 @@ export function hitTestInteractable(
   const offsetY = Math.round(viewportH / 2 - camera.y * ZOOM);
   let best: { it: Interactable; dist: number } | null = null;
   for (const it of state.interactables) {
+    // Items on the table use a footprint-aware tile-rect hit test so any of
+    // a 2×2 pizza's tiles registers a clean hit. Other interactables fall
+    // back to a screen-radius zone around their tile.
+    if (it.glowCol != null && it.glowRow != null) {
+      const fw = it.glowFootprintW ?? 1;
+      const fh = it.glowFootprintH ?? 1;
+      const x0 = offsetX + it.glowCol * s;
+      const y0 = offsetY + it.glowRow * s;
+      const x1 = x0 + fw * s;
+      const y1 = y0 + fh * s;
+      if (screenX >= x0 && screenX < x1 && screenY >= y0 && screenY < y1) {
+        // Distance from rect center for tie-breaking
+        const cx = (x0 + x1) / 2;
+        const cy = (y0 + y1) / 2;
+        const dist = Math.max(Math.abs(screenX - cx), Math.abs(screenY - cy));
+        if (!best || dist < best.dist) best = { it, dist };
+      }
+      continue;
+    }
     const cx = offsetX + it.col * s + s / 2;
     const cy = offsetY + it.row * s + s / 2;
     const dx = screenX - cx;
-    // Bias upward (negative y) so clicks above the tile (on tall furniture) hit
-    const dy = (screenY - cy) + s * 0.7;
+    const dy = screenY - cy + s * 0.7;
     const dist = Math.max(Math.abs(dx), Math.abs(dy));
     if (dist <= s * 1.4) {
       if (!best || dist < best.dist) best = { it, dist };
     }
   }
   return best ? best.it : null;
+}
+
+/** Returns true if `tile` lies inside any table-surface food/dodster
+ *  footprint. Used by the click handler to route table-item clicks to the
+ *  active station rather than walking the player to a blocked surface tile
+ *  (which would otherwise route them around to the north of the table and
+ *  collide with the seated diners). */
+export function isTableFoodTile(
+  state: GameState,
+  tile: { col: number; row: number },
+): boolean {
+  for (const item of state.furniture) {
+    if (!FOOD_DEF_IDS.has(item.defId)) continue;
+    const def = getFurnitureDef(item.defId);
+    if (!def) continue;
+    if (
+      tile.col >= item.col &&
+      tile.col < item.col + def.footprintW &&
+      tile.row >= item.row &&
+      tile.row < item.row + def.footprintH
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Convert screen coords to tile coords */

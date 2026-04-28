@@ -15,10 +15,10 @@ import { EndingStory } from './ui/EndingStory';
 import { GameCanvas } from './ui/GameCanvas';
 import { HUD } from './ui/HUD';
 import { InfographicModal } from './ui/InfographicModal';
-import { IntroCutscene } from './ui/IntroCutscene';
+import { WelcomeFlow, type PlayerChoice } from './ui/StartScreen';
 import './ui/ui.css';
 
-type Stage = 'boot' | 'disclaimer' | 'intro' | 'play' | 'ending';
+type Stage = 'boot' | 'disclaimer' | 'play' | 'ending';
 
 interface CompletedRecord {
   stationId: string;
@@ -32,9 +32,13 @@ export default function App() {
   const [completed, setCompleted] = useState<CompletedRecord[]>([]);
   const [activePromptId, setActivePromptId] = useState<string | null>(null);
   const [stateKey, setStateKey] = useState(0);
+  const [playerChoice, setPlayerChoice] = useState<PlayerChoice>('sasha');
 
   // Build pizzeria state once per game run; rebuilding bumps stateKey to remount canvas.
-  const gameState = useMemo<GameState>(() => buildPizzeriaState(), [stateKey]);
+  const gameState = useMemo<GameState>(
+    () => buildPizzeriaState({ playerChoice }),
+    [stateKey, playerChoice],
+  );
 
   // Asset boot
   useEffect(() => {
@@ -93,7 +97,7 @@ export default function App() {
 
   const handleCloseModal = useCallback(() => {
     setOpenStation(null);
-    // Auto-advance to ending if all stations completed (unique ids, not raw rows)
+    // Auto-advance to ending once every unique station has been answered.
     setTimeout(() => {
       setCompleted((latest) => {
         const doneIds = new Set(latest.map((c) => c.stationId));
@@ -110,7 +114,7 @@ export default function App() {
     setOpenStation(null);
     setActivePromptId(null);
     setStateKey((k) => k + 1);
-    setStage('intro');
+    setStage('disclaimer');
   }, []);
 
   if (stage === 'boot') {
@@ -124,28 +128,13 @@ export default function App() {
 
   if (stage === 'disclaimer') {
     return (
-      <div className="disclaimerScreen">
-        <div className="disclaimerCard">
-          <div className="disclaimerGreeting">Привет!</div>
-          <div className="disclaimerBody">
-            То, что вы увидите на этом сайте, было создано в рамках хакатона ВШЭ
-            по журналистике данных 18–19 апреля 2026 года. На основе
-            предоставленного датасета нужно было найти и рассказать историю о
-            компании и её потребителях. Разработка и реализация концепции были
-            выполнены за 30 часов командой из пяти человек (авторы указаны в
-            титрах).
-          </div>
-          <div className="disclaimerWish">Желаем удачной игры!</div>
-          <button className="btn btnPrimary" onClick={() => setStage('intro')}>
-            Начать ▸
-          </button>
-        </div>
-      </div>
+      <WelcomeFlow
+        onStart={({ playerId }) => {
+          setPlayerChoice(playerId);
+          setStage('play');
+        }}
+      />
     );
-  }
-
-  if (stage === 'intro') {
-    return <IntroCutscene onFinish={() => setStage('play')} />;
   }
 
   if (stage === 'ending') {

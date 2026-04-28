@@ -23,12 +23,21 @@ const CHATTER: Record<string, string[]> = {
     'Привет из Казани!',
     'Дома такая же Пепперони.',
     'У нас в Приволжье каждый второй знает Додо.',
+    'Из Казани с любовью!',
+    'Поволжье — наш вкус.',
   ],
   diner_siberia: [
     'В Сибири без горячей пиццы — никак.',
     'Привет из Красноярска!',
     'Зимой ваша доставка спасает.',
   ],
+  diner_central: ['Из Москвы приехал!', 'Люблю тонкое тесто.'],
+  diner_south: ['С нами вся страна за одним столом.', 'Ещё воды, пожалуйста.'],
+  host_reg: ['Сегодня чеки особенно интересные.', 'Можно оплатить картой или наличными.'],
+  host_disp: ['Курьеры уже на линии.', 'Сегодня доставка идёт без задержек.'],
+  diner_ural: ['У нас на Урале любят острую.', 'Пицца — это тоже инженерия.'],
+  booth_ne: ['Тут тихо, удобно.', 'Можно ещё кофе?'],
+  booth_se: ['У окна приятнее.', 'Ждём пиццу…'],
 };
 
 interface ChatterState {
@@ -44,21 +53,24 @@ export function updateNpcChatter(
   state: ChatterState,
   characters: Character[],
   dt: number,
+  /** NPC id currently hosting the guided station bubble — no random chatter. */
+  activeStationNpcId: string | null,
 ): void {
   for (const ch of characters) {
     if (ch.isPlayer) continue;
+    if (activeStationNpcId && ch.id === activeStationNpcId) continue;
     const pool = CHATTER[ch.id];
     if (!pool || pool.length === 0) continue;
     const next = state.nextAt.get(ch.id);
     if (next === undefined) {
-      state.nextAt.set(ch.id, 5 + Math.random() * 12);
+      state.nextAt.set(ch.id, 22 + Math.random() * 28);
       continue;
     }
     const nextNew = next - dt;
     if (nextNew <= 0 && !ch.bubble) {
       const line = pool[Math.floor(Math.random() * pool.length)];
-      showBubble(ch, line, 3.5);
-      state.nextAt.set(ch.id, 14 + Math.random() * 18);
+      showBubble(ch, line, 2.6);
+      state.nextAt.set(ch.id, 38 + Math.random() * 45);
     } else {
       state.nextAt.set(ch.id, nextNew);
     }

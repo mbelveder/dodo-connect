@@ -41,14 +41,22 @@ export interface CreateCharacterOpts {
   name?: string;
   seated?: boolean;
   hasBackpack?: boolean;
+  /** Seated but frozen in idle (no TYPE "eating" loop). */
+  stillSeated?: boolean;
+  /** Hat drawn on top of the character. */
+  hatType?: 'orange' | 'orangeLarge' | 'party';
 }
 
 export function createCharacter(opts: CreateCharacterOpts): Character {
   const c = tileCenter(opts.col, opts.row);
-  // Seated diners run the "type" animation (alternating frames 3 and 4 in
-  // the spritesheet) which reads as gentle hand motion — the closest thing
-  // we have to an "eating at a table" pose without new sprites.
-  const initialState = opts.seated ? CharacterState.TYPE : CharacterState.IDLE;
+  // Seated diners usually run the TYPE "eating" loop; stillSeated guests
+  // stay in IDLE so half the table reads calm and motionless.
+  const initialState =
+    opts.seated && opts.stillSeated
+      ? CharacterState.IDLE
+      : opts.seated
+        ? CharacterState.TYPE
+        : CharacterState.IDLE;
   return {
     id: opts.id,
     paletteIndex: opts.paletteIndex,
@@ -71,6 +79,8 @@ export function createCharacter(opts: CreateCharacterOpts): Character {
     name: opts.name,
     seated: opts.seated ?? false,
     hasBackpack: opts.hasBackpack ?? false,
+    stillSeated: opts.stillSeated ?? false,
+    hatType: opts.hatType,
   };
 }
 
@@ -182,6 +192,7 @@ export function updateCharacter(
     }
 
     case CharacterState.TYPE: {
+      if (ch.stillSeated) break;
       if (ch.frameTimer >= TYPE_FRAME_DURATION_SEC) {
         ch.frameTimer -= TYPE_FRAME_DURATION_SEC;
         ch.frame = (ch.frame + 1) % 2;

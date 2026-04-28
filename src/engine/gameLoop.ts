@@ -1,6 +1,6 @@
 import { CAMERA_FOLLOW_LERP } from './constants';
 import { updateCharacter } from './character';
-import { findActiveInteractable, type GameState } from './gameState';
+import { findActiveInteractable, getActiveStationNpcId, type GameState } from './gameState';
 import { createChatterState, updateNpcChatter } from './npcChatter';
 import { renderFrame, type Camera } from './renderer';
 import { tryStepFromKeys, type KeyState } from './playerControl';
@@ -26,13 +26,15 @@ export function startGameLoop(
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
 
+    state.introElapsed += dt;
+
     tryStepFromKeys(state.player, keys, state.tileMap, state.blocked);
 
     for (const ch of state.characters) {
       updateCharacter(ch, dt, state.tileMap, state.blocked, state.walkable);
     }
 
-    updateNpcChatter(chatter, state.characters, dt);
+    updateNpcChatter(chatter, state.characters, dt, getActiveStationNpcId(state));
 
     const active = findActiveInteractable(state);
     state.activePromptId = active ? active.id : null;

@@ -771,3 +771,348 @@ button:focus-visible {
 .endingText {
   white-space: pre-wrap;
 }
+
+/* ── Welcome flow (2-page intro) ────────────────────────── */
+
+.welcomeScreen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 105, 0, 0.28), transparent 60%),
+    radial-gradient(circle at 70% 80%, rgba(255, 210, 63, 0.15), transparent 60%),
+    #1a1208;
+  overflow: auto;
+  padding: 12px 24px;
+}
+
+.welcomeInner {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--dodo-cream);
+}
+
+@keyframes titleAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    text-shadow: none;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    text-shadow:
+      3px 3px 0 var(--dodo-orange-dark),
+      6px 6px 0 var(--dodo-charcoal),
+      0 0 32px rgba(255, 105, 0, 0.35);
+  }
+}
+
+.welcomeTitle {
+  font-size: clamp(48px, 6.4vw, 88px);
+  line-height: 1.05;
+  text-align: center;
+  color: var(--dodo-orange);
+  letter-spacing: 2px;
+  text-shadow:
+    3px 3px 0 var(--dodo-orange-dark),
+    6px 6px 0 var(--dodo-charcoal);
+  animation: titleAppear 0.9s ease-out both;
+}
+
+@keyframes contentSlideIn {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes contentSlideOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-18px); }
+}
+
+.welcomeContent {
+  width: 100%;
+}
+
+.welcomeContentIn {
+  animation: contentSlideIn 0.38s ease-out both;
+}
+
+.welcomeContentOut {
+  animation: contentSlideOut 0.28s ease-in both;
+  pointer-events: none;
+}
+
+/* Page 1 */
+
+.p1Wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.p1Layout {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 3vw, 48px);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.p1DodoImg {
+  width: clamp(80px, 12vw, 140px);
+  height: auto;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+  filter: drop-shadow(4px 4px 0 rgba(0,0,0,0.5));
+}
+
+.p1TextCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  max-width: 640px;
+}
+
+.p1Body {
+  margin: 0;
+  font-size: clamp(24px, 2.9vw, 36px);
+  line-height: 1.55;
+  color: var(--dodo-cream);
+  opacity: 0.92;
+}
+
+.p1Btn {
+  font-size: clamp(24px, 2.6vw, 34px);
+  padding: 14px 36px;
+}
+
+/* Page 2 */
+
+.p2Wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Start screen shared classes (used by page 2) ───────── */
+
+.startScreen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 105, 0, 0.28), transparent 60%),
+    radial-gradient(circle at 70% 80%, rgba(255, 210, 63, 0.15), transparent 60%),
+    #1a1208;
+  overflow: auto;
+  padding: 32px 24px;
+}
+
+.startInner {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  color: var(--dodo-cream);
+}
+
+.startHeadline {
+  font-size: clamp(36px, 5vw, 64px);
+  line-height: 1.05;
+  text-align: center;
+  color: var(--dodo-orange);
+  letter-spacing: 2px;
+  text-shadow:
+    3px 3px 0 var(--dodo-orange-dark),
+    6px 6px 0 var(--dodo-charcoal);
+}
+
+.startSubline {
+  font-size: clamp(20px, 2.4vw, 30px);
+  text-align: center;
+  max-width: 760px;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+.startCastRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 20px;
+  padding: 4px 0;
+}
+
+.startCastItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 90px;
+}
+
+.startCastName {
+  font-size: clamp(36px, 3.4vw, 50px);
+  color: var(--dodo-cream);
+  font-weight: 700;
+}
+
+.startCastRegion {
+  font-size: clamp(28px, 2.8vw, 40px);
+  color: var(--dodo-yellow);
+  letter-spacing: 0.5px;
+}
+
+.startPortrait {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.startPickLabel {
+  font-size: clamp(24px, 2.4vw, 32px);
+  letter-spacing: 1px;
+  margin-top: 8px;
+  color: var(--dodo-cream);
+}
+
+.startPickRow {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.startPickCard {
+  font-family: inherit;
+  background: rgba(255, 247, 230, 0.05);
+  border: 4px solid var(--dodo-charcoal);
+  color: var(--dodo-cream);
+  padding: 18px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  min-width: 200px;
+  box-shadow: 4px 4px 0 0 var(--dodo-charcoal);
+  transition: transform 0.05s, box-shadow 0.05s, border-color 0.1s, background 0.1s;
+}
+
+.startPickCard:hover {
+  background: rgba(255, 247, 230, 0.12);
+}
+
+.startPickCard:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 var(--dodo-charcoal);
+}
+
+.startPickCardSelected {
+  border-color: var(--dodo-orange);
+  background: rgba(255, 105, 0, 0.18);
+  box-shadow: 4px 4px 0 0 var(--dodo-orange);
+}
+
+.startPickName {
+  font-size: clamp(26px, 2.4vw, 32px);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.startPickBlurb {
+  font-size: clamp(16px, 1.5vw, 20px);
+  opacity: 0.85;
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.4;
+}
+
+.startSoundToggle {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid var(--dodo-cream);
+  padding: 8px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.startSoundToggle input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--dodo-orange);
+  cursor: pointer;
+}
+
+.startSoundLabel {
+  font-size: clamp(36px, 3.6vw, 50px);
+  color: var(--dodo-cream);
+}
+
+.startSoundHint {
+  font-size: clamp(32px, 3.2vw, 44px);
+  color: var(--dodo-yellow);
+  opacity: 0.85;
+}
+
+.startStartBtn {
+  font-size: clamp(44px, 4.4vw, 60px);
+  padding: 12px 40px;
+  margin-top: 0;
+}
+
+.startPlayerRow {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.startPlayerItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.startPlayerName {
+  font-size: clamp(44px, 4.4vw, 60px);
+  font-weight: 700;
+  color: var(--dodo-orange);
+  letter-spacing: 1px;
+}
+
+.startPlayerRegion {
+  font-size: clamp(32px, 3.2vw, 44px);
+  color: var(--dodo-yellow);
+  letter-spacing: 0.5px;
+}
+
+.startDataNote {
+  font-size: clamp(28px, 2.8vw, 38px);
+  color: var(--dodo-cream);
+  opacity: 0.65;
+  text-align: center;
+  max-width: 720px;
+  line-height: 1.3;
+  font-style: italic;
+}
+
+.startDataNote p {
+  margin: 0;
+}

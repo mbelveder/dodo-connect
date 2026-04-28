@@ -37,9 +37,11 @@ export function getStationSteps(station: Station): StationStep[] {
 }
 
 /**
- * IMPORTANT: station ids must match the `id` of interactables placed in
- * `scene/pizzeriaLayout.ts`. Currently: register, dispatch, capitals,
- * tile_map, regions, holidays.
+ * IMPORTANT: station ids and **order** must match `interactables` in
+ * `scene/pizzeriaLayout.ts` (register → dispatch → capitals → regions →
+ * tile_map → holidays) — the guided queue uses that array index. Table
+ * stations use `glowCol`/`glowRow` on the coloured pucks; register/dispatch
+ * use NPC speech bubbles.
  *
  * Teammates: drop your infographics into `public/infographics/` and reference
  * by `/infographics/<file>.png`, OR replace `kind: 'image'` with

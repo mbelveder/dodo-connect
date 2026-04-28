@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { playSound } from '../engine/audio';
 import { startGameLoop } from '../engine/gameLoop';
 import { type GameState } from '../engine/gameState';
 import { attachKeyHandlers, clickToMove, type KeyState } from '../engine/playerControl';
@@ -61,6 +62,9 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
       const y = e.clientY - rect.top;
       const cssW = rect.width;
       const cssH = rect.height;
+      // Any click on a station hotspot — pizza/muffin on the table, or the
+      // cashier/courier NPC — walks the player to that station's walk-tile
+      // and queues the modal to open on arrival. Works in any order.
       const it = hitTestInteractable(state, cameraRef.current, cssW, cssH, x, y);
       if (it) {
         clickToMove(state.player, it.col, it.row, state.tileMap, state.blocked);
@@ -73,9 +77,33 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
       }
       pendingInteract = null;
       const tile = screenToTile(cameraRef.current, cssW, cssH, x, y);
+      // Play dodo sound when clicking the mascot on the table
+      const dodoItem = state.furniture.find((f) => f.defId === 'TABLE_DODO');
+      if (
+        dodoItem &&
+        tile.col >= dodoItem.col &&
+        tile.col < dodoItem.col + 1 &&
+        tile.row >= dodoItem.row &&
+        tile.row < dodoItem.row + 1
+      ) {
+        playSound('/sound/dodo_sound.mp3', 0.5);
+        return;
+      }
       clickToMove(state.player, tile.col, tile.row, state.tileMap, state.blocked);
     };
     canvas.addEventListener('click', onClick);
+
+    const onMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      state.hoveredTile = screenToTile(cameraRef.current, rect.width, rect.height, x, y);
+    };
+    const onMouseLeave = () => {
+      state.hoveredTile = null;
+    };
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseleave', onMouseLeave);
 
     const handle = startGameLoop(canvas, state, keys, (newId) => {
       if (newId && pendingInteract === newId) {
@@ -101,6 +129,8 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
       window.removeEventListener('resize', resize);
       window.removeEventListener('keydown', onE);
       canvas.removeEventListener('click', onClick);
+      canvas.removeEventListener('mousemove', onMouseMove);
+      canvas.removeEventListener('mouseleave', onMouseLeave);
       detachKeys();
       handle.stop();
       cancelAnimationFrame(rafId);
