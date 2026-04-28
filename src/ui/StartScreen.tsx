@@ -10,6 +10,7 @@ import {
   walkFrameIdx,
 } from '../engine/sprites';
 import { Direction } from '../engine/types';
+import { withBase } from './Infographic';
 
 export type PlayerChoice = 'sasha' | 'vika';
 
@@ -73,7 +74,7 @@ function Page1({ onNext }: { onNext: () => void }) {
   return (
     <div className="p1Wrap">
       <div className="p1Layout">
-        <img src="/items/dodo.webp" alt="Додо" className="p1DodoImg" />
+        <img src={withBase('/items/dodo.webp')} alt="Додо" className="p1DodoImg" />
         <div className="p1TextCol">
           <p className="p1Body">
             На праздники в России принято собираться за общим столом. Шесть друзей,

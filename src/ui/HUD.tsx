@@ -14,7 +14,7 @@ export function HUD({ completed, total, promptLabel }: HUDProps) {
             Станций изучено: {completed} / {total}
           </span>
         </div>
-        <div className="hudHint">WASD — ходить · Клик — идти к точке · E — взаимодействовать</div>
+        <div className="hudHint">WASD — ходить · Клик — идти к точке</div>
       </div>
       {promptLabel && (
         <div className="hudPrompt">

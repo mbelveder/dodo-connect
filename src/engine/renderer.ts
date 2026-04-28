@@ -373,10 +373,18 @@ export function renderFrame(
       if (ch.dir === Direction.UP || ch.dir === Direction.DOWN) seatedDrop = 10;
       else seatedDrop = -4; // LEFT/RIGHT — sit a bit higher in the side sofa
     }
+    // Booth-back sitter (seen from behind) should sit a touch higher so
+    // their torso aligns better with the sofa back.
+    if (ch.stillSeated && ch.dir === Direction.UP) seatedDrop = 2;
     const seatedZBoost = ch.seated ? 1000 : 0;
     const feetX = offsetX + (ch.x - CHAR_W / 2) * ZOOM;
     const feetY = offsetY + (ch.y - CHAR_H + TILE_SIZE / 2 + seatedDrop) * ZOOM;
-    const zY = ch.y + TILE_SIZE / 2 + 0.5 + seatedDrop + seatedZBoost;
+    // Still-seated "booth back" guests (facing UP) should render behind the
+    // booth sofa back so only the upper body is visible.
+    const renderBehindBoothBack = ch.stillSeated && ch.dir === Direction.UP;
+    const zY = renderBehindBoothBack
+      ? (ch.tileRow + 1) * TILE_SIZE - 1
+      : ch.y + TILE_SIZE / 2 + 0.5 + seatedDrop + seatedZBoost;
     const hasBackpack = ch.hasBackpack;
     const dirForBackpack = ch.dir;
     const dir = ch.dir;
