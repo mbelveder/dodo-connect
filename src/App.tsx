@@ -18,7 +18,7 @@ import { InfographicModal } from './ui/InfographicModal';
 import { WelcomeFlow, type PlayerChoice } from './ui/StartScreen';
 import './ui/ui.css';
 
-type Stage = 'boot' | 'disclaimer' | 'play' | 'ending';
+type Stage = 'boot' | 'disclaimer' | 'loading-game' | 'play' | 'ending';
 
 interface CompletedRecord {
   stationId: string;
@@ -39,24 +39,31 @@ export default function App() {
     [stateKey, playerChoice],
   );
 
-  // Asset boot
+  const [furnitureReady, setFurnitureReady] = useState(false);
+
+  // Phase 1: character sheets only → show start screen immediately.
+  // Phase 2: furniture images in background while user reads the start screen.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         await loadCharacterSheets();
         buildSyntheticSprites();
+        if (!cancelled) setStage('disclaimer');
         await loadFurnitureImages(getAllFurnitureRequests());
         setAssetsReady();
-        if (!cancelled) setStage('disclaimer');
+        if (!cancelled) setFurnitureReady(true);
       } catch (err) {
         console.error('Asset load failed', err);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
+
+  // Advance to play as soon as furniture finishes, if user already clicked Начать.
+  useEffect(() => {
+    if (furnitureReady && stage === 'loading-game') setStage('play');
+  }, [furnitureReady, stage]);
 
   const completedIds = useMemo(() => new Set(completed.map((c) => c.stationId)), [completed]);
 
@@ -121,12 +128,14 @@ export default function App() {
     );
   }
 
-  if (stage === 'disclaimer') {
+  if (stage === 'disclaimer' || stage === 'loading-game') {
     return (
       <WelcomeFlow
+        loading={stage === 'loading-game'}
         onStart={({ playerId }) => {
           setPlayerChoice(playerId);
-          setStage('play');
+          if (furnitureReady) setStage('play');
+          else setStage('loading-game');
         }}
       />
     );

@@ -147,17 +147,24 @@ export interface FurnitureImageRequest {
 export async function loadFurnitureImages(
   requests: Array<string | FurnitureImageRequest>,
 ): Promise<void> {
-  for (const r of requests) {
-    const req: FurnitureImageRequest = typeof r === 'string' ? { src: r } : r;
-    if (furnitureImgs.has(req.src) || furnitureCanvases.has(req.src)) continue;
-    if (req.src.startsWith('synthetic://')) continue;
-    const img = await loadImage(req.src);
-    if (req.tint === 'orange') {
-      furnitureCanvases.set(req.src, tintImageOrange(img));
-    } else {
-      furnitureImgs.set(req.src, img);
-    }
-  }
+  const pending = requests
+    .map((r): FurnitureImageRequest => (typeof r === 'string' ? { src: r } : r))
+    .filter(
+      (req) =>
+        !req.src.startsWith('synthetic://') &&
+        !furnitureImgs.has(req.src) &&
+        !furnitureCanvases.has(req.src),
+    );
+  await Promise.all(
+    pending.map(async (req) => {
+      const img = await loadImage(req.src);
+      if (req.tint === 'orange') {
+        furnitureCanvases.set(req.src, tintImageOrange(img));
+      } else {
+        furnitureImgs.set(req.src, img);
+      }
+    }),
+  );
 }
 
 /**

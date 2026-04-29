@@ -16,6 +16,7 @@ export type PlayerChoice = 'sasha' | 'vika';
 
 interface WelcomeFlowProps {
   onStart: (opts: { playerId: PlayerChoice; soundOn: boolean }) => void;
+  loading?: boolean;
 }
 
 const REGIONAL_CAST = [
@@ -29,7 +30,7 @@ const REGIONAL_CAST = [
 
 type PageState = 'p1' | 'p1-out' | 'p2';
 
-export function WelcomeFlow({ onStart }: WelcomeFlowProps) {
+export function WelcomeFlow({ onStart, loading = false }: WelcomeFlowProps) {
   const [pageState, setPageState] = useState<PageState>('p1');
   const [soundOn, setSoundOn] = useState<boolean>(false);
 
@@ -59,6 +60,7 @@ export function WelcomeFlow({ onStart }: WelcomeFlowProps) {
               soundOn={soundOn}
               onToggleSound={setSoundOn}
               onStart={handleStart}
+              loading={loading}
             />
           )}
         </div>
@@ -78,8 +80,8 @@ function Page1({ onNext }: { onNext: () => void }) {
         <div className="p1TextCol">
           <p className="p1Body">
             На праздники в России принято собираться за общим столом. Шесть друзей,
-            шесть жителей разных регионов России встретились в Додо, чтобы отметить
-            день рождения Насти из Сибири. Предметы на их столе расскажут тебе, почему
+            шесть жителей разных регионов России встретились в Додо по приглашению Насти из Сибири, чтобы отметить один из таких праздников.
+            Исследуй пиццерию, чтобы узнать, почему
             праздники в Додо — горячее время.
           </p>
           <button className="btn btnPrimary p1Btn" onClick={onNext}>
@@ -95,9 +97,10 @@ interface Page2Props {
   soundOn: boolean;
   onToggleSound: (on: boolean) => void;
   onStart: () => void;
+  loading?: boolean;
 }
 
-function Page2({ soundOn, onToggleSound, onStart }: Page2Props) {
+function Page2({ soundOn, onToggleSound, onStart, loading = false }: Page2Props) {
   const npcCast = REGIONAL_CAST.filter((c) => !c.isPlayer);
   const player = REGIONAL_CAST.find((c) => c.isPlayer)!;
 
@@ -106,7 +109,7 @@ function Page2({ soundOn, onToggleSound, onStart }: Page2Props) {
       <div className="startCastRow">
         {npcCast.map((c) => (
           <div className="startCastItem" key={c.palette + c.name}>
-            <CharacterPortrait palette={c.palette} size={1.6} />
+            <CharacterPortrait palette={c.palette} size={2.2} />
             <div className="startCastName">{c.name}</div>
             <div className="startCastRegion">{c.region}</div>
           </div>
@@ -115,7 +118,7 @@ function Page2({ soundOn, onToggleSound, onStart }: Page2Props) {
 
       <div className="startPlayerRow">
         <div className="startPlayerItem">
-          <CharacterPortrait palette={player.palette} size={3.2} />
+          <CharacterPortrait palette={player.palette} size={3} />
           <div className="startPlayerName">{player.name}</div>
           <div className="startPlayerRegion">{player.region}</div>
         </div>
@@ -135,8 +138,8 @@ function Page2({ soundOn, onToggleSound, onStart }: Page2Props) {
         <span className="startSoundLabel">Включить звук</span>
       </label>
 
-      <button className="btn btnPrimary startStartBtn" onClick={onStart}>
-        Начать ▸
+      <button className="btn btnPrimary startStartBtn" onClick={onStart} disabled={loading}>
+        {loading ? 'Загрузка…' : 'Начать ▸'}
       </button>
     </div>
   );

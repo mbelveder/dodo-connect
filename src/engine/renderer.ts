@@ -177,6 +177,7 @@ export function renderFrame(
   // npcId) fall back to their col/row.
   for (const it of state.interactables) {
     if (!state.completedStationIds.has(it.id)) continue;
+    if (it.npcId) continue; // register/dispatch: no green frame on NPC stations
     const pos = getInteractableAnchorTile(it, state);
     const tileX = offsetX + pos.col * s;
     const tileY = offsetY + pos.row * s;
@@ -861,6 +862,7 @@ export function hitTestInteractable(
     // Items on the table use a footprint-aware tile-rect hit test so any of
     // a 2×2 pizza's tiles registers a clean hit. Other interactables fall
     // back to a screen-radius zone around their tile.
+    // Glow-tile rect test (table stations + register/dispatch object sprites).
     if (it.glowCol != null && it.glowRow != null) {
       const fw = it.glowFootprintW ?? 1;
       const fh = it.glowFootprintH ?? 1;
@@ -869,16 +871,17 @@ export function hitTestInteractable(
       const x1 = x0 + fw * s;
       const y1 = y0 + fh * s;
       if (screenX >= x0 && screenX < x1 && screenY >= y0 && screenY < y1) {
-        // Distance from rect center for tie-breaking
         const cx = (x0 + x1) / 2;
         const cy = (y0 + y1) / 2;
         const dist = Math.max(Math.abs(screenX - cx), Math.abs(screenY - cy));
         if (!best || dist < best.dist) best = { it, dist };
+        continue;
       }
-      continue;
+      // NPC-driven stations (register, dispatch) also accept clicks on the NPC
+      // itself — players naturally click the cashier/courier, not the object.
+      if (!it.npcId) continue;
     }
-    // Use live NPC position for NPC-driven interactables so wandering NPCs
-    // (e.g. dispatch courier) stay hittable at their current tile.
+    // Radius-based test around the live NPC position (or static col/row).
     const livePos = it.npcId
       ? (() => {
           const npc = state.characters.find((c) => c.id === it.npcId);

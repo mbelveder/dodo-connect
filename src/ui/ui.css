@@ -371,20 +371,14 @@ button:focus-visible {
 
 .modalGrid {
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(320px, 1fr);
+  grid-template-columns: 1fr;
   gap: 0;
-}
-
-@media (max-width: 760px) {
-  .modalGrid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .modalChartSlot {
   padding: 18px;
   background: #fffaee;
-  border-right: 2px dashed var(--dodo-charcoal);
+  border-bottom: 2px dashed var(--dodo-charcoal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -758,7 +752,7 @@ button:focus-visible {
     radial-gradient(circle at 70% 80%, rgba(255, 210, 63, 0.15), transparent 60%),
     #1a1208;
   overflow: auto;
-  padding: 12px 24px;
+  padding: 8px 24px;
 }
 
 .welcomeInner {
@@ -767,7 +761,7 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   color: var(--dodo-cream);
 }
 
@@ -788,7 +782,7 @@ button:focus-visible {
 }
 
 .welcomeTitle {
-  font-size: clamp(48px, 6.4vw, 88px);
+  font-size: clamp(36px, 5vw, 72px);
   line-height: 1.05;
   text-align: center;
   color: var(--dodo-orange);
@@ -874,7 +868,7 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
 }
 
 /* ── Start screen shared classes (used by page 2) ───────── */
@@ -926,26 +920,26 @@ button:focus-visible {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 20px;
-  padding: 4px 0;
+  gap: 4px 16px;
+  padding: 2px 0;
 }
 
 .startCastItem {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  min-width: 90px;
+  gap: 2px;
+  min-width: 70px;
 }
 
 .startCastName {
-  font-size: clamp(36px, 3.4vw, 50px);
+  font-size: clamp(20px, 2vw, 26px);
   color: var(--dodo-cream);
   font-weight: 700;
 }
 
 .startCastRegion {
-  font-size: clamp(28px, 2.8vw, 40px);
+  font-size: clamp(20px, 2vw, 24px);
   color: var(--dodo-yellow);
   letter-spacing: 0.5px;
   white-space: pre-line;
@@ -1020,10 +1014,10 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px 14px;
+  gap: 8px 12px;
   background: rgba(0, 0, 0, 0.35);
   border: 2px solid var(--dodo-cream);
-  padding: 8px 18px;
+  padding: 6px 14px;
   cursor: pointer;
   user-select: none;
 }
@@ -1036,50 +1030,50 @@ button:focus-visible {
 }
 
 .startSoundLabel {
-  font-size: clamp(36px, 3.6vw, 50px);
+  font-size: clamp(20px, 2vw, 24px);
   color: var(--dodo-cream);
 }
 
 .startSoundHint {
-  font-size: clamp(32px, 3.2vw, 44px);
+  font-size: clamp(20px, 2vw, 24px);
   color: var(--dodo-yellow);
   opacity: 0.85;
 }
 
 .startStartBtn {
-  font-size: clamp(44px, 4.4vw, 60px);
-  padding: 12px 40px;
+  font-size: clamp(30px, 3vw, 44px);
+  padding: 10px 36px;
   margin-top: 0;
 }
 
 .startPlayerRow {
   display: flex;
   justify-content: center;
-  padding: 2px 0;
+  padding: 0;
 }
 
 .startPlayerItem {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .startPlayerName {
-  font-size: clamp(44px, 4.4vw, 60px);
+  font-size: clamp(32px, 3.2vw, 44px);
   font-weight: 700;
   color: var(--dodo-cream);
   letter-spacing: 1px;
 }
 
 .startPlayerRegion {
-  font-size: clamp(32px, 3.2vw, 44px);
+  font-size: clamp(20px, 2vw, 28px);
   color: var(--dodo-yellow);
   letter-spacing: 0.5px;
 }
 
 .startDataNote {
-  font-size: clamp(28px, 2.8vw, 38px);
+  font-size: clamp(20px, 2vw, 24px);
   color: var(--dodo-cream);
   opacity: 0.65;
   text-align: center;

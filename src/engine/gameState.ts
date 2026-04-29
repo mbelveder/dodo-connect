@@ -117,8 +117,9 @@ export function findActiveInteractable(state: GameState): Interactable | null {
   const py = state.player.tileRow;
   let best: { it: Interactable; dist: number } | null = null;
   for (const it of state.interactables) {
-    const pos = getInteractablePosition(it, state);
-    const dist = Math.abs(pos.col - px) + Math.abs(pos.row - py);
+    // Always use the static col/row as the approach tile for proximity.
+    // NPC position is used only for speech-bubble anchoring, not triggering.
+    const dist = Math.abs(it.col - px) + Math.abs(it.row - py);
     if (dist <= INTERACT_RADIUS) {
       if (!best || dist < best.dist) best = { it, dist };
     }
