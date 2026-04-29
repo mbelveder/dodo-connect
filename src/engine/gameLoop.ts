@@ -17,6 +17,8 @@ export function startGameLoop(
   state: GameState,
   keys: KeyState,
   onActivePromptChange: (id: string | null) => void,
+  /** Called every frame after activePromptId is computed — use for proximity polling (e.g. pending walk-to-interact). */
+  onEachTick?: (activePromptId: string | null) => void,
 ): LoopHandle {
   const ctx = canvas.getContext('2d')!;
   let last = performance.now();
@@ -45,6 +47,7 @@ export function startGameLoop(
       prevPromptId = state.activePromptId;
       onActivePromptChange(state.activePromptId);
     }
+    onEachTick?.(state.activePromptId);
 
     camera.x += (state.player.x - camera.x) * CAMERA_FOLLOW_LERP;
     camera.y += (state.player.y - camera.y) * CAMERA_FOLLOW_LERP;

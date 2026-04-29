@@ -97,13 +97,18 @@ export function GameCanvas({ state, onActivePromptChange, onInteract }: GameCanv
     canvas.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mouseleave', onMouseLeave);
 
-    const handle = startGameLoop(canvas, state, keys, (newId) => {
-      if (newId && pendingInteract === newId) {
-        pendingInteract = null;
-        onInteract(newId);
-      }
-      onActivePromptChange(newId);
-    });
+    const handle = startGameLoop(
+      canvas,
+      state,
+      keys,
+      onActivePromptChange,
+      (activeId) => {
+        if (activeId && pendingInteract === activeId) {
+          pendingInteract = null;
+          onInteract(activeId);
+        }
+      },
+    );
 
     // Stash camera reference so click handler can read it
     // Hacky but works: read camera back from gameLoop. We poll via rAF.

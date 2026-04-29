@@ -119,6 +119,8 @@ export default function App() {
     setStage('disclaimer');
   }, []);
 
+  const handleActivePromptChange = useCallback((_id: string | null) => {}, []);
+
   if (stage === 'boot') {
     return (
       <div className="bootScreen">
@@ -151,7 +153,7 @@ export default function App() {
       <GameCanvas
         key={stateKey}
         state={gameState}
-        onActivePromptChange={() => {}}
+        onActivePromptChange={handleActivePromptChange}
         onInteract={handleInteract}
       />
       <HUD
