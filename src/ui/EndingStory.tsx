@@ -51,8 +51,20 @@ export function EndingStory({ score, total, onRestart }: EndingStoryProps) {
           </button>
         </div>
         <div className="endingFooter">
-          Данные Dodo Pizza с хакатона «Всем Дата»
-        </div>
+          Данные Dodo Pizza с хакатона «Всем Дата». Использованы открытые проекты:{' '}
+          <a href="https://github.com/pablodelucca/pixel-agents" target="_blank" rel="noopener noreferrer">
+            pixel-agents
+          </a>{' '}
+          и{' '}
+          <a href="https://github.com/quillcraft/tilemap-russia" target="_blank" rel="noopener noreferrer">
+            tilemap-russia
+          </a>{' '}
+          (проект{' '}
+          <a href="https://t.me/antonmizinov" target="_blank" rel="noopener noreferrer">
+            Антона Мизинова
+          </a>
+          ).
+          </div>
       </div>
     </div>
   );
